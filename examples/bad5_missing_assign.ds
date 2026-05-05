@@ -1,0 +1,4 @@
+-- Error 5: let statement missing the = sign
+table students = load "students.csv"
+
+let result SELECT name FROM students

@@ -1,0 +1,5 @@
+-- Error 1: SELECT without FROM clause
+table students = load "students.csv"
+
+let result = SELECT name, grade
+             WHERE grade > 70

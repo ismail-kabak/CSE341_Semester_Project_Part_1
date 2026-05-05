@@ -1,0 +1,9 @@
+-- Basic query example
+table students = load "students.csv"
+
+let result = SELECT name, grade
+             FROM students
+             WHERE grade > 70 AND grade < 90
+             ORDER BY grade DESC
+
+print result
