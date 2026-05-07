@@ -1,4 +1,0 @@
--- Error 3: invalid type keyword in function parameter
-function broken(t: dataframe) -> table {
-    return SELECT * FROM t
-}

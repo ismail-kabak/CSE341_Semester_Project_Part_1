@@ -1,4 +1,0 @@
--- Error 4: chained comparison operators (non-associative by design)
-table students = load "students.csv"
-
-let result = SELECT name FROM students WHERE 50 < grade < 90

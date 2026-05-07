@@ -1,3 +1,0 @@
--- Error 2: function body brace never closed
-function broken(t: table) -> table {
-    return SELECT * FROM t

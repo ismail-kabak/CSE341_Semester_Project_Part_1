@@ -1,6 +1,8 @@
-# Recipix — Language Specification (v4)
+# Recipix — Language Specification (v4.1)
 
-This is v4 of the Recipix specification. It supersedes v3. All issues identified in the v3 design review are resolved here. The 27-decision design table is updated in §12 with the new and revised rows highlighted.
+This is v4.1 of the Recipix specification. It supersedes v4 by applying three final decisions: `quantity_of` as a unary operator (#34), `substitute` slots restricted to bare identifiers (#35), and a reworded parameter-passing decision (#16).
+
+With v4.1 in place, the language design is **locked**. Next phase: A2 (EBNF grammar).
 
 Replace `docs/00_project_briefing.md` with this document.
 
@@ -49,6 +51,8 @@ The language has user-defined parameterized recipes, scalar helper functions, co
 
 `string` is **not** a primitive type. String literals appear only in fixed syntactic positions (step descriptions). They are a token category, not a type that admits operations.
 
+`quantity_of` is a reserved keyword that introduces a unary operator (see §2 and §5). It is not a function name and cannot be redefined or referenced as a value.
+
 **Note on the closed type-name set:** Recipix does not have user-facing type-parameter syntax. There is no `Quantity<Mass>` or `List<T>` in user programs — only the type-name keywords above. List type annotations are not allowed in user programs in v1; list types are inferred at literal construction and at `foreach` loop entry. The angle-bracket forms (`Quantity<D>`, `List<T>`) appear only in this specification document as meta-language, never in source code.
 
 ---
@@ -82,6 +86,12 @@ When an `Ingredient` value appears in an arithmetic, comparison, or substitution
 - `quantity_of(flour)` is the explicit form, recommended for clarity in non-trivial arithmetic.
 
 This is a deliberate ergonomic decision; without it, every arithmetic expression in a recipe would need explicit projection. Trade-off accepted: a small loss of type-system uniformity in exchange for substantial readability gain.
+
+### `quantity_of` is a unary operator, not a function
+
+The explicit projection form `quantity_of(<expr>)` is a **unary operator**, not a function call. It is recognized by the parser as a dedicated production, not as a name lookup. Users cannot redefine it, assign it to a variable, or pass it as an argument. Its operand must have type `Ingredient`; its result type is the dimension of that ingredient's quantity field (`Mass`, `Volume`, `Count`, `Temperature`, `Duration`, or `Pinch`).
+
+Trade-off accepted: a small departure from syntactic uniformity (it looks like a call but isn't one) in exchange for a cleaner type system — `quantity_of` does not need a `FunctionType` representation, since no function type can express "argument is `Ingredient`, return type is its quantity field's dimension." This is type-level structure that the `function` declaration form, with its fixed return-type annotation, cannot express.
 
 ### Type equivalence (summary)
 
@@ -162,7 +172,7 @@ From highest to lowest:
 
 | Level | Operators | Associativity |
 |---|---|---|
-| 1 | unary `-`, `!` | right |
+| 1 | unary `-`, `!`, `quantity_of(...)` | right |
 | 2 | `*`, `/` | left |
 | 3 | `+`, `-` (binary) | left |
 | 4 | `<`, `<=`, `>`, `>=` | non-associative |
@@ -171,6 +181,8 @@ From highest to lowest:
 | 7 | `||` | left |
 
 Parenthesization overrides precedence. Operand evaluation order is **left-to-right and fully defined** (Sebesta §7.6).
+
+Note: `quantity_of(...)` is a unary operator at level 1, not a function call. See §2 for its type rule.
 
 ---
 
@@ -233,6 +245,10 @@ Inner scopes can read outer-scope names. **No shadowing**: declaring an identifi
 ### `scale` and `substitute` are functional
 
 These operations produce new recipe values; they do not mutate the original. `scale(pancakes, by: 2)` returns a fresh `Recipe` value with all relevant quantities doubled; `pancakes` itself is unchanged. Substitution and scaling are **call-site only** — they cannot appear inside a recipe body. There is no `this` keyword; a recipe cannot reference itself during construction. Every Recipix expression is referentially transparent in v1.
+
+### Parameter passing
+
+All parameter passing in Recipix is **semantically by-value**: the callee receives values that the caller cannot observe being modified, because no Recipix operation modifies any value. The implementation copies primitives and quantities; for recipes and lists it shares immutable references to avoid unnecessary copying. Because Recipix has no mutation, this implementation choice is unobservable — Sebesta §9.5 distinguishes by-value, by-reference, by-result, and by-value-result modes by their *observable* effects, and in v1 all of these collapse to a single mode. If Recipix v2 introduces mutation (e.g., a mutable accumulator inside a `repeat` body), this decision will be the first thing the language design has to revisit.
 
 ---
 
@@ -309,7 +325,7 @@ The closed set of action verbs in v1: `combine`, `mix`, `pour`, `melt`, `whisk`,
 
 ### Action verbs are an exception to the homogeneous-list rule
 
-A statement like `combine(flour, salt)` mixes ingredients of different dimensions (Mass and Pinch) into one argument list. Under the homogeneous-list rule (§2), this would be a type error. **Action verbs are explicit exceptions to that rule.** The action verb signature table (locked in Part 2) defines, per-verb, what argument types are accepted; for combining and mixing verbs, heterogeneous ingredient lists are accepted.
+A statement like `combine(flour, salt)` mixes ingredients of different dimensions (Mass and Pinch) into one argument list. Under the homogeneous-list rule (§2), this would be a type error. **Action verbs are explicit exceptions to that rule.** The action verb signature table (locked in Part 2 H6) defines, per-verb, what argument types are accepted; for combining and mixing verbs, heterogeneous ingredient lists are accepted.
 
 This is a deliberate design carve-out: action verbs are language built-ins with their own signature rules, and ordinary list rules do not apply to their argument lists. Trade-off accepted: small loss of type-system uniformity, in exchange for natural expression of cooking actions.
 
@@ -398,15 +414,19 @@ substitute(<recipe_expr>, <ingredient_name>, with: <ingredient_name>, ratio: <sc
 ```
 
 - Returns a fresh `Recipe` value.
-- Looks up `<ingredient_name>` in the recipe's ingredient binding table; replaces its binding with the replacement and applies the ratio: new quantity = `original_quantity * ratio`.
+- The two `<ingredient_name>` slots are **bare identifiers**, not general expressions. They are resolved at compile time as lookups in the recipe's ingredient binding table. Writing an arbitrary expression in either slot is a parse error.
+- The `<scalar_expr>` slot accepts any `int` or `float` expression.
+- Looks up the original `<ingredient_name>` in the recipe's ingredient binding table; replaces its binding with the replacement and applies the ratio: new quantity = `original_quantity * ratio`.
 - Both ingredients must have quantities of the **same dimension** — substituting a Mass for a Volume is a compile-time type error. Substituting any value for a `Pinch` (or vice versa) is also a type error, since `Pinch` is not a `Quantity<D>`.
-- The replacement ingredient name must be defined in scope at the substitute call site.
+- The replacement ingredient name must be defined in scope at the substitute call site (typically as another ingredient inside the recipe being substituted).
+
+The bare-identifier restriction makes Decision #28 (ingredient identity is the binding) visible in the grammar itself, rather than enforcing it later in the type checker. Trade-off accepted: small loss of expressive uniformity (you cannot programmatically compute which ingredient to substitute) in exchange for grammar-level clarity about what `substitute` actually does — symbol-table lookup, not runtime value matching.
 
 ---
 
 ## 10. Errors caught
 
-### Compile-time (type checker)
+### Compile-time (type checker / parser)
 
 1. Dimension mismatch in arithmetic, comparison, or substitution
 2. Pinch value in arithmetic, comparison, or scaling/substitution-by-ratio position (ceremonial discipline)
@@ -424,13 +444,15 @@ substitute(<recipe_expr>, <ingredient_name>, with: <ingredient_name>, ratio: <sc
 14. Unknown ingredient referenced in a step or in `substitute`
 15. Implicit `float` → `int` coercion attempt
 16. Substitution between `Pinch` and a `Quantity<D>` (different primitive types)
+17. Non-identifier expression in either ingredient-name slot of `substitute` (parse error)
+18. `quantity_of` applied to a non-`Ingredient` operand
 
 ### Run-time (interpreter)
 
 1. Negative `repeat` count
 2. Negative scaling factor
 3. Zero scaling factor
-4. Substitution of a non-existent ingredient name (when computed at runtime)
+4. Substitution of a non-existent ingredient name (when computed at runtime — rare, since slots are bare identifiers checked at compile time)
 5. Division by zero in scalar arithmetic
 
 Each error reports line number and a useful message.
@@ -496,7 +518,9 @@ evaluate substitute(smoothie(servings: 2), milk, with: oat_milk, ratio: 1.0)
 evaluate smoothie(servings: 2)
 ```
 
-The `oat_milk` ingredient is declared inside the recipe so that it exists as a binding the `substitute` call can reference. This is a deliberate consequence of the no-`this` decision: alternative ingredients are pre-declared in the recipe, and the choice between them is made at the call site.
+Notes on this sample:
+- `milk` and `oat_milk` in the `substitute` call are bare identifiers — symbol-table lookups in the smoothie recipe's ingredient bindings (§9 substitute, Decision #35).
+- The `oat_milk` ingredient is declared inside the recipe so that it exists as a binding the `substitute` call can reference. This is a deliberate consequence of the no-`this` decision: alternative ingredients are pre-declared in the recipe, and the choice between them is made at the call site.
 
 ### Sample 3 — A type-error program (for D3 P2)
 
@@ -521,28 +545,28 @@ The compile-time error is at the `let` line: implicit projection turns `flour + 
 
 ---
 
-## 12. The 27-decision design table (v4)
+## 12. The 35-decision design table (v4.1)
 
-Rows changed or newly added in v4 are marked **[NEW]** or **[REVISED]**.
+Rows changed in v4.1 are marked **[v4.1 REVISED]** or **[v4.1 NEW]**. Rows added in v4 (over v3) are marked **[v4 NEW]** or **[v4 REVISED]**.
 
 | # | Decision | Choice | Sebesta |
 |---|---|---|---|
 | 1 | Primitive types | `int`, `float`, `bool` | §6.2 |
 | 2 | String handling | Token category, not a type | §6.2 |
 | 3 | Domain primitives | Quantity types `Mass`, `Volume`, `Count`, `Temperature`, `Duration` | §6.2 |
-| 4 | Ceremonial primitive **[REVISED]** | `Pinch` is its own primitive type, separate from quantities; no arithmetic, no comparison, no scaling | §6.2 (deliberate trade-off) |
+| 4 | Ceremonial primitive **[v4 REVISED]** | `Pinch` is its own primitive type, separate from quantities; no arithmetic, no comparison, no scaling | §6.2 (deliberate trade-off) |
 | 5 | Structured types | `Ingredient`, `Recipe`, `Step`, `List<T>` | §6.5–6.7 |
 | 6 | List discipline | Homogeneous; quantity lists share one dimension | §6.5 |
 | 7 | Quantity literals | Two tokens, separator (whitespace and/or comments) required between number and unit | §4.2 |
 | 8 | Strong typing | Yes, strict | §6.12 |
-| 9 | Implicit coercion **[REVISED]** | Within-dimension unit coercion (`g`↔`kg`, etc.); plus `int` widens to `float` in mixed-mode arithmetic; never `float` → `int`; never across dimensions | §7.4 |
+| 9 | Implicit coercion **[v4 REVISED]** | Within-dimension unit coercion (`g`↔`kg`, etc.); plus `int` widens to `float` in mixed-mode arithmetic; never `float` → `int`; never across dimensions | §7.4 |
 | 10 | Type equivalence | Structural for `Quantity<D>`, `Ingredient`, `List<T>`; name for `Recipe` | §6.14 |
 | 11 | Scoping | Static (lexical); each block opens a fresh scope | §5.5 |
 | 12 | Shadowing | Forbidden; redeclaration of a visible name is an error | §5.5 |
 | 13 | Single-assignment | Ingredients, `let`, parameters: immutable | §5.4 |
 | 14 | Lifetime | Recipes/functions static; everything else stack-dynamic | §5.4 |
 | 15 | User-defined abstractions | Parameterized recipes (primary) + scalar `function` (helpers) | §9 |
-| 16 | Parameter passing | By-value for primitives and quantities; by-value-of-immutable-reference for recipes/lists | §9.5 |
+| 16 | Parameter passing **[v4.1 REVISED]** | **Semantically by-value for all types.** Recipix has no mutation, so by-value and by-reference are indistinguishable at the language level. The implementation passes primitives and quantities by copy, and recipes and lists by shared immutable reference, purely as an optimization — programs cannot detect the difference because no operation mutates the referenced value. If a future Recipix version introduces mutation, this decision will need to be revisited. | §9.5 |
 | 17 | Operator precedence and associativity | Standard hierarchy; comparison non-associative | §7.2 |
 | 18 | Operand evaluation order | Left-to-right, fully defined | §7.6 |
 | 19 | Short-circuit | Yes for `&&` and `||` | §7.5 |
@@ -554,36 +578,89 @@ Rows changed or newly added in v4 are marked **[NEW]** or **[REVISED]**.
 | 25 | `scale` / `substitute` semantics | Functional: produce new values, do not mutate. Call-site only; no `this` keyword. | §9 (referential transparency) |
 | 26 | Composition (recipe-in-recipe) | **Removed from v1** | (scope) |
 | 27 | Assignment | Statement, not expression. `let` is the only binding form. | §7.6 |
-| 28 | Ingredient identity **[NEW]** | The binding (identifier in symbol table). The `name` record field is a label, not the program-level identity. `substitute(r, flour, ...)` resolves through the symbol table. | §5.2, §6.7 |
-| 29 | Action verbs and homogeneous lists **[NEW]** | Action verbs are explicit exceptions to the homogeneous-list rule. Per-verb signatures (locked in Part 2 H6) define accepted argument types; combining/mixing verbs accept heterogeneous ingredient lists. | §6.5 (deliberate carve-out) |
-| 30 | Constructing quantities from expressions **[NEW]** | An expression cannot be followed by a unit keyword. Use `<expr> * 1 <unit>` to construct a quantity from a computed value. Consequence of decision #7. | §4.2, §6.2 |
-| 31 | Ingredient → Quantity projection **[NEW]** | When an `Ingredient` value appears in arithmetic, comparison, or substitution context, it implicitly projects to its `quantity` field. Equivalent explicit form: `quantity_of(<ingredient>)`. | §6.7 (deliberate ergonomic trade-off) |
-| 32 | Type-name keywords (no type-parameter syntax) **[NEW]** | User programs use `Mass`, `Volume`, `Count`, `Temperature`, `Duration`, `Pinch`, `int`, `float`, `bool` as type names. No angle-bracket type parameters in user syntax. List type annotations are not allowed in v1; list types are inferred. | §6.5 |
-| 33 | String literal encoding **[NEW]** | UTF-8. Any character except `"` and newline allowed. No escape sequences in v1. | §4.2 |
+| 28 | Ingredient identity **[v4 NEW]** | The binding (identifier in symbol table). The `name` record field is a label, not the program-level identity. `substitute(r, flour, ...)` resolves through the symbol table. | §5.2, §6.7 |
+| 29 | Action verbs and homogeneous lists **[v4 NEW]** | Action verbs are explicit exceptions to the homogeneous-list rule. Per-verb signatures (locked in Part 2 H6) define accepted argument types; combining/mixing verbs accept heterogeneous ingredient lists. | §6.5 (deliberate carve-out) |
+| 30 | Constructing quantities from expressions **[v4 NEW]** | An expression cannot be followed by a unit keyword. Use `<expr> * 1 <unit>` to construct a quantity from a computed value. Consequence of decision #7. | §4.2, §6.2 |
+| 31 | Ingredient → Quantity projection **[v4 NEW]** | When an `Ingredient` value appears in arithmetic, comparison, or substitution context, it implicitly projects to its `quantity` field. Equivalent explicit form: `quantity_of(<ingredient>)`. | §6.7 (deliberate ergonomic trade-off) |
+| 32 | Type-name keywords (no type-parameter syntax) **[v4 NEW]** | User programs use `Mass`, `Volume`, `Count`, `Temperature`, `Duration`, `Pinch`, `int`, `float`, `bool` as type names. No angle-bracket type parameters in user syntax. List type annotations are not allowed in v1; list types are inferred. | §6.5 |
+| 33 | String literal encoding **[v4 NEW]** | UTF-8. Any character except `"` and newline allowed. No escape sequences in v1. | §4.2 |
+| 34 | `quantity_of` operator status **[v4.1 NEW]** | Unary operator (level-1 precedence, right-associative), not a function. Cannot be redefined, assigned to a variable, or passed as an argument. Type rule: `Ingredient → <dimension of quantity field>`. This avoids needing a `FunctionType` whose return type depends on the argument's type-level structure. | §6.7, §7.2 |
+| 35 | `substitute` argument forms **[v4.1 NEW]** | The two ingredient-name slots are bare identifiers (symbol-table lookups), not general expressions. Restricting them syntactically makes the binding-resolution rule (Decision #28) visible in the grammar. The `ratio` slot remains a general scalar expression. | §5.2, §6.7 |
 
-**Signature decisions to memorize for the exam:** #4 (ceremonial Pinch as its own primitive), #8 (strong typing), #9 (split coercion: within-dimension unit AND int-widens-to-float), #10 (split equivalence rule), #15 (parameterized recipes as primary abstraction), #20 (mandatory braces), #25 (functional scale/substitute, no `this`), #29 (action verbs as homogeneous-list exception), #31 (Ingredient → Quantity implicit projection).
+**Signature decisions to memorize for the exam:** #4 (ceremonial Pinch as its own primitive), #8 (strong typing), #9 (split coercion: within-dimension unit AND int-widens-to-float), #10 (split equivalence rule), #15 (parameterized recipes as primary abstraction), #16 (by-value semantically; references as implementation detail in absence of mutation), #20 (mandatory braces), #25 (functional scale/substitute, no `this`), #29 (action verbs as homogeneous-list exception), #31 (Ingredient → Quantity implicit projection), #34 (`quantity_of` as operator), #35 (substitute slots as identifiers).
 
 ---
 
-## 13. Summary of v4 changes from v3
+## 13. Grammar productions ready for A2
 
-For traceability against the v3 review:
+The following productions are pre-committed to be in A2 (EBNF). They encode v4.1 decisions that have grammar-level consequences:
 
-| v3 Issue | v4 Resolution |
+### Unary expression (decision #34)
+
+```
+<unary>      ::= "-" <unary>
+              |  "!" <unary>
+              |  "quantity_of" "(" <expr> ")"
+              |  <primary>
+```
+
+`quantity_of` is at the unary level (level 1), parsed by a dedicated production. It is not reachable through `<primary>` (which handles function calls, identifiers, literals, etc.).
+
+### Substitute call (decision #35)
+
+```
+<substitute_call> ::= "substitute" "(" <expr> ","
+                        IDENT ","
+                        "with" ":" IDENT ","
+                        "ratio" ":" <expr>
+                      ")"
+```
+
+The two ingredient-name slots are `IDENT` terminals — bare identifiers — not `<expr>`. The grammar makes the restriction visible.
+
+### Quantity-literal lookahead (decision #7, recap)
+
+```
+<primary> ::= INT_LIT [ <unit_keyword> ]
+           |  FLOAT_LIT [ <unit_keyword> ]
+           |  ...
+```
+
+A numeric literal optionally followed by a unit keyword forms a quantity literal. The optional unit keyword must be lexically the next token after the numeric literal (only whitespace and comments may intervene).
+
+---
+
+## 14. AST nodes ready for C1
+
+The following AST nodes are pre-committed for the implementation phase:
+
+```python
+@dataclass
+class QuantityOf:        # decision #34
+    operand: Expr
+    line: int
+
+@dataclass
+class SubstituteCall:    # decision #35
+    recipe: Expr
+    original_name: str       # bare identifier text, not Expr
+    replacement_name: str    # bare identifier text, not Expr
+    ratio: Expr
+    line: int
+```
+
+Note that `SubstituteCall.original_name` and `replacement_name` are typed as `str`, not `Expr`. This is the AST-level reflection of decision #35: the grammar guarantees the slot is an identifier, so the AST does not pretend it could be anything else.
+
+---
+
+## 15. Summary of v4.1 changes from v4
+
+For traceability:
+
+| Issue addressed in v4.1 | Resolution |
 |---|---|
-| `this` keyword undecided | Dropped. Substitution is call-site only. Sample 2 rewritten to pre-declare alternative ingredients. (Decision #25.) |
-| Ingredient identity ambiguous (binding vs. string) | Identity is the binding; `name` is a label. (Decision #28.) |
-| `combine(flour, salt)` violates homogeneous-list rule | Action verbs are explicit exceptions. (Decision #29.) |
-| `half(servings) count` not parseable | Use `half(servings) * 1 count`. Sample 1 updated. (Decision #30.) |
-| Scalar × quantity asymmetry | Both `quantity * scalar` and `scalar * quantity` allowed; commutative. (§3.) |
-| int/float arithmetic semantics undefined | Specified: `int / int` is truncating; `int` widens to `float` in mixed mode; `float` → `int` never implicit. (Decision #9, §3.) |
-| Ingredient quantities have multiple lifetimes | Documented in §6 binding-times table: parsed at decl, type-checked at decl, evaluated at instantiation. |
-| `serves <expr>` parsing ambiguity | Documented: greedy expression parsing up to the body's `{`. (§7.) |
-| `Ingredient` vs. `Quantity` in arithmetic | Implicit projection added; explicit form `quantity_of(x)`. Sample 3 (broken) rewritten with a real, unambiguous error. (Decision #31, §2.) |
-| `Pinch` placement in type hierarchy | Listed as separate primitive type, not a `Quantity<D>`. (Decision #4, §2.) |
-| `1 pinch` syntax | Required; integer prefix ignored semantically. (§2.) |
-| UTF-8 in strings | Specified UTF-8. (Decision #33, §1.) |
-| Whitespace/comments inside quantity literals | Allowed; documented. (§1.) |
-| `Quantity<Mass>` angle-bracket syntax | Removed from user programs. Type-name keywords used directly. List type annotations disallowed in v1. (Decision #32.) |
+| `quantity_of` as function vs. operator | Locked as a unary operator (level 1, right-associative). New decision #34. Reserved keyword. Not redefinable. New §2 paragraph; precedence-table footnote in §5; parser production and AST node committed. |
+| `substitute` slots ambiguity | Locked as bare identifiers in the grammar, not general expressions. New decision #35. Substitute production rewritten in §9. New error #17 in §10. Parser production and AST node committed. |
+| Decision #16 (parameter passing) wording | Reworded to honestly describe semantic-vs-implementation distinction. Now explicitly: "semantically by-value; implementation may share immutable references; the distinction is unobservable in v1 because no mutation exists." Also added as a paragraph at the end of §6. |
 
-All v3 outstanding design issues are resolved. The language is ready for A2 (EBNF) and the build phase.
+All v3 and v4 outstanding design issues are now resolved. **The language design is locked.** Next phase: A2 (EBNF), then C1 (AST), C2 (lexer), C3 (parser).
