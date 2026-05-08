@@ -17,7 +17,7 @@ Integration note for parser:
     e.g. Token(UNIT_KW, 'g', 4)
 """
 
-from tokens import (
+from recipix.tokens import (
     Token,
     IDENT, INT_LIT, FLOAT_LIT, STRING_LIT, BOOL_LIT,
     UNIT_KW, UNIT_KEYWORDS,
@@ -136,6 +136,10 @@ class Lexer:
         Scan INT_LIT or FLOAT_LIT.
         Does NOT consume a following unit keyword — that is a separate token.
         The parser combines (INT_LIT | FLOAT_LIT) + UNIT_KW into QuantityLit.
+
+        Decision #7: a numeric literal and its unit keyword MUST be separated
+        by at least one whitespace character or a // comment.
+        '200g' with no separator is a lexical error.
         """
         start = self.pos
         line  = self.line
@@ -145,8 +149,24 @@ class Lexer:
             self._advance()  # consume '.'
             while self._peek() is not None and self._peek().isdigit():
                 self._advance()
+            self._check_no_unit_glued(start)
             return Token(FLOAT_LIT, float(self.source[start:self.pos]), line)
+        self._check_no_unit_glued(start)
         return Token(INT_LIT, int(self.source[start:self.pos]), line)
+
+    def _check_no_unit_glued(self, num_start: int):
+        """
+        Raise LexerError if the character immediately after the number
+        (no whitespace consumed yet) is alphabetic or '°'.
+        This enforces decision #7: '200g' is a lexical error.
+        """
+        nxt = self._peek()
+        if nxt is not None and (nxt.isalpha() or nxt == '°'):
+            num_text = self.source[num_start:self.pos]
+            self._error(
+                f"Missing separator between number and unit: '{num_text}{nxt}...'. "
+                f"Write '{num_text} {nxt}...' with a space (spec decision #7)."
+            )
 
     def _scan_string(self) -> Token:
         """

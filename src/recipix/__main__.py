@@ -18,14 +18,18 @@ def _get_tokens(source: str, filename: str):
     """Tokenize source using the project's lexer (src/lexer.py).
     Falls back to a minimal stub if the lexer is not importable."""
     try:
-        from lexer import Lexer
-        return Lexer(source).tokenize()
+        from lexer import Lexer, LexerError        
     except ImportError:
         sys.exit(
             f"error: could not import 'lexer' from {_src!r}.\n"
             f"Make sure src/lexer.py exists (lexer team deliverable) and "
             f"you are running from the src/ directory or the project root."
         )
+    try:
+        return Lexer(source).tokenize()
+    except LexerError as e:
+        sys.exit(str(e))
+
 
 
 def main(argv=None):

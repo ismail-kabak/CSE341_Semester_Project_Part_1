@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(0, 'src')
+from recipix.tokens import Token  # ensure single tokens module is loaded
 from lexer import Lexer, LexerError
 
 def run(label, source):
@@ -33,3 +34,11 @@ run("bad string", 'step "unclosed')
 
 # Test 8: lone degree symbol
 run("lone degree", 'let x = °')
+
+# Test 9: decision #7 — no separator between number and unit (lexical error)
+run("200g no separator", 'ingredient flour : 200g')
+run("1.5kg no separator", 'ingredient milk : 1.5kg')
+
+# Test 10: decision #7 — these should be VALID (whitespace is fine)
+run("200 g valid", 'ingredient flour : 200 g')
+run("200  g valid extra space", 'ingredient flour : 200  g')

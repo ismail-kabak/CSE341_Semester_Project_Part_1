@@ -10,19 +10,17 @@ Spec: `recipix_v4_1_spec.md` · Language design: **locked at v4.1**.
 No third-party dependencies — Python 3.11+ and the stdlib are all you need.
 
 ```bash
-# Parse a file (prints "OK" on success, parse error on failure)
-python -m recipix <file.rcx>
+# Parse a file (prints "OK" on success, error on failure)
+python main.py <file.rcx>
 
 # Pretty-print the AST
-python -m recipix <file.rcx> --dump-ast
+python main.py --dump-ast <file.rcx>
 
 # Run the full test suite
 python -m unittest discover tests
 ```
 
-Run these commands from either the **project root** or the **`src/`** directory.  
-The `__main__.py` adds `src/` to the Python path automatically so it can import
-the lexer team's `src/lexer.py`.
+Run all commands from the **project root**. No third-party dependencies required.
 
 ---
 
@@ -31,7 +29,6 @@ the lexer team's `src/lexer.py`.
 ```
 src/
   lexer.py              # Lexer team deliverable (not modified by the parser team)
-  tokens.py             # Lexer team's token constants (shared contract origin)
   recipix/
     __init__.py
     __main__.py         # CLI: python -m recipix <file> [--dump-ast]
@@ -74,7 +71,7 @@ Column information (`.col`) is optional; the parser defaults to `0` when absent.
 ### Token-type constants
 
 These are the exact strings the parser checks against `.type`.  
-They are defined in `src/recipix/tokens.py` and in `src/tokens.py` (lexer team's file) with identical values.
+They are defined in `src/recipix/tokens.py` — the single source of truth. The lexer imports from this same file.
 
 #### Literals
 
