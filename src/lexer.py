@@ -156,17 +156,33 @@ class Lexer:
 
     def _check_no_unit_glued(self, num_start: int):
         """
-        Raise LexerError if the character immediately after the number
-        (no whitespace consumed yet) is alphabetic or '°'.
-        This enforces decision #7: '200g' is a lexical error.
+        Raise LexerError only when a unit keyword immediately follows the number
+        with no whitespace (decision #7: '200g' is a lexical error).
+        A non-unit identifier like '200foo' is NOT an error — it tokenizes as
+        INT_LIT(200) followed by IDENT('foo') on the next call.
         """
         nxt = self._peek()
-        if nxt is not None and (nxt.isalpha() or nxt == '°'):
+        if nxt is None:
+            return
+        if nxt == '°':
+            # '°' can only start '°C' — always a unit, always an error
             num_text = self.source[num_start:self.pos]
             self._error(
-                f"Missing separator between number and unit: '{num_text}{nxt}...'. "
-                f"Write '{num_text} {nxt}...' with a space (spec decision #7)."
+                f"Missing separator between number and unit: '{num_text} °C'. "
+                f"Write '{num_text} °C' with a space (spec decision #7)."
             )
+        if nxt.isalpha() or nxt == '_':
+            # Scan ahead (without consuming) to get the full word
+            p = self.pos
+            while p < len(self.source) and (self.source[p].isalnum() or self.source[p] == '_'):
+                p += 1
+            word = self.source[self.pos:p]
+            if word in UNIT_KEYWORDS:
+                num_text = self.source[num_start:self.pos]
+                self._error(
+                    f"Missing separator between number and unit: '{num_text}{word}'. "
+                    f"Write '{num_text} {word}' with a space (spec decision #7)."
+                )
 
     def _scan_string(self) -> Token:
         """

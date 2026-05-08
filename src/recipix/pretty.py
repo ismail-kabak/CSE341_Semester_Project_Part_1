@@ -182,6 +182,9 @@ def dump(node, indent: int = 0) -> str:
         lines.append(f"{prefix})")
         return "\n".join(lines)
 
+    if isinstance(node, AmbiguousCall):
+        return f"{prefix}(AmbiguousCall {node.name!r} line={node.line})"
+
     if isinstance(node, RecipeCall):
         lines = [f"{prefix}(RecipeCall {node.name!r} line={node.line}"]
         for kw in node.kwargs:

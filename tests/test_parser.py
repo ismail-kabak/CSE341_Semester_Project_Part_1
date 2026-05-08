@@ -329,8 +329,8 @@ class TestMandatoryBraces(unittest.TestCase):
         assert_parse_error(self, src, fragment="expected '{'")
 
     def test_if_else_with_braces_ok(self):
-        src = ("function f(n: int) -> bool { "
-               "if n > 0 { return true } else { return false } } evaluate f(1)")
+        src = ("function f(n: int) -> int { "
+               "if n > 0 { let x : int = 1 } else { let x : int = 0 } return n } evaluate f(1)")
         ast = parse_src(src)
         fn = ast.items[0]
         self.assertIsInstance(fn.body[0], IfStmt)

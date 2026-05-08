@@ -53,7 +53,9 @@ class RecipeDecl:
 
 @dataclass
 class FunctionDecl:
-    """function <name>([params]) -> <return_type> { <stmts> return <expr> }"""
+    """function <name>([params]) -> <return_type> { <stmts> return <expr> }
+    INVARIANT (enforced by parser): body[-1] is always ReturnStmt,
+    and it is the only ReturnStmt in the list."""
     name: str
     params: list          # List[Param]
     return_type: str
@@ -203,6 +205,14 @@ class FunctionCall:
     """<name>(<positional_args>)  — scalar helper function call."""
     name: str
     args: list            # List[Expr]
+    line: int
+
+
+@dataclass
+class AmbiguousCall:
+    """A zero-argument call foo() whose kind (recipe vs function)
+    is resolved by the type checker via name-table lookup."""
+    name: str
     line: int
 
 

@@ -40,7 +40,7 @@ from .ast_nodes import (
     RecipeDecl, FunctionDecl, IngredientDecl, StepDecl,
     EvalStmt, LetStmt, IfStmt, RepeatStmt, ForeachStmt, ReturnStmt, ActionStmt,
     BinaryOp, CompareOp, UnaryOp, QuantityOf, SubstituteCall, ScaleCall,
-    FunctionCall, RecipeCall, KwArg,
+    FunctionCall, RecipeCall, KwArg, AmbiguousCall,
     Identifier, IntLit, FloatLit, BoolLit, StringLit, QuantityLit, ListLit,
 )
 
@@ -173,6 +173,28 @@ class Parser:
 
         self._expect(LBRACE, "expected '{' to open function body")
         body = self._parse_stmt_list()
+
+        # Enforce: exactly one return, must be the last top-level statement (v1)
+        return_indices = [i for i, s in enumerate(body) if isinstance(s, ReturnStmt)]
+        if not return_indices:
+            raise ParseError(
+                self._line(), 0,
+                "function body must end with a 'return' statement"
+            )
+        if return_indices[-1] != len(body) - 1:
+            bad = body[return_indices[-1]]
+            raise ParseError(
+                bad.line, 0,
+                "'return' must be the last statement in a function body "
+                "(no early return in v1)"
+            )
+        if len(return_indices) > 1:
+            bad = body[return_indices[0]]
+            raise ParseError(
+                bad.line, 0,
+                "only one 'return' statement is allowed per function (no early return in v1)"
+            )
+
         self._expect(RBRACE, "expected '}' to close function body")
 
         return FunctionDecl(name=name, params=params, return_type=return_type,
@@ -228,11 +250,19 @@ class Parser:
         if self._check('for'):
             self._advance()
             for_expr = self._parse_expr()
+            # Guard: next token must be '{'; anything else means the modifier
+            # order is wrong or the expression was mis-parsed.
+            if not self._check(LBRACE):
+                t = self._peek()
+                if t.type == 'at':
+                    raise ParseError(t.line, 0,
+                        "'at' modifier must come before 'for' modifier in step declaration "
+                        "(Decision #23)")
+                raise ParseError(t.line, 0,
+                    f"expected '{{' to open step body after 'for' modifier, "
+                    f"got '{t.type}' ('{t.value}'). "
+                    f"If your 'for' expression is complex, wrap it in parentheses.")
 
-        # If we see 'for' before 'at' was consumed — detect wrong order
-        # (Already handled: if 'for' appeared before 'at', the expr parser
-        #  would have consumed it.  We guard against 'for...at' below by
-        #  checking: if we're here and see 'at', that's wrong order.)
         if self._check('at'):
             t = self._peek()
             raise ParseError(t.line, getattr(t, 'col', 0),
@@ -270,6 +300,11 @@ class Parser:
             return self._parse_return_stmt()
         if t.type == ACTION_KW:
             return self._parse_action_stmt()
+        if t.type == 'for':
+            raise ParseError(t.line, 0,
+                "'for' is not a statement keyword — did you mean 'foreach'? "
+                "The 'for' keyword is only valid as a step modifier "
+                "(e.g. step \"...\" for <expr> { }).")
         raise ParseError(t.line, getattr(t, 'col', 0),
                          f"unexpected token '{t.type}' ('{t.value}'); "
                          f"expected a statement (let, if, repeat, foreach, return, or action verb)")
@@ -614,9 +649,9 @@ class Parser:
         self._advance()  # consume '('
 
         if self._check(RPAREN):
-            # Zero-arg call — could be recipe or function; treat as FunctionCall
+            # Zero-arg call — kind (recipe vs function) resolved by type checker
             self._advance()
-            return FunctionCall(name=name, args=[], line=name_tok.line)
+            return AmbiguousCall(name=name, line=name_tok.line)
 
         # Peek to see if first arg is keyword style: IDENT ':'
         if (self._peek(0).type == IDENT and self._peek(1).type == COLON):
