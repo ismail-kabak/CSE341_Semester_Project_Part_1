@@ -1,0 +1,7 @@
+// Cat 10: reserved keyword used as recipe name — must fail (spec §6)
+// 'recipe' is a reserved keyword; _expect(IDENT) should reject it
+recipe recipe() serves 1 {
+    ingredient flour : 200 g
+    step "x" { combine(flour) }
+}
+evaluate recipe()

@@ -1,0 +1,7 @@
+// Cat 3: function call in first slot — must fail (decision #35)
+recipe smoothie(servings: int) serves servings {
+    ingredient milk     : 150 ml * servings
+    ingredient oat_milk : 150 ml * servings
+    step "blend" { blend() }
+}
+evaluate substitute(smoothie(servings: 2), foo(), with: oat_milk, ratio: 1.0)

@@ -1,0 +1,9 @@
+// Cat 6: repeated 'at' modifier — must fail (decision #23)
+// Bug candidate: error message may say "must come before 'for'" instead of "repeated at"
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "bake" at 180 °C at 200 °C {
+        combine(flour)
+    }
+}
+evaluate test()

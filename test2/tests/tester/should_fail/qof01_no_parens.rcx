@@ -1,0 +1,9 @@
+// Cat 2: quantity_of without parens — must fail (§2, decision #34)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "x" {
+        let q : Mass = quantity_of flour
+        combine(flour)
+    }
+}
+evaluate test()

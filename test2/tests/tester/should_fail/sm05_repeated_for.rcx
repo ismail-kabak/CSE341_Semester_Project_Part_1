@@ -1,0 +1,9 @@
+// Cat 6: repeated 'for' modifier — must fail (decision #23)
+// Bug candidate: error message may be confusing (expects '{' but gets 'for')
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "bake" for 30 min for 45 min {
+        combine(flour)
+    }
+}
+evaluate test()

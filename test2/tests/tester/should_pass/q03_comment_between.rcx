@@ -1,0 +1,7 @@
+// Cat 1: // comment between number and unit — must work (spec §1)
+recipe test() serves 1 {
+    ingredient flour : 200 // this is the weight
+    g
+    step "x" { combine(flour) }
+}
+evaluate test()

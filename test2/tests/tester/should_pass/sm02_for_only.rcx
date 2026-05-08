@@ -1,0 +1,8 @@
+// Cat 6: step with only 'for' modifier — must work (decision #23)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "bake" for 30 min {
+        combine(flour)
+    }
+}
+evaluate test()

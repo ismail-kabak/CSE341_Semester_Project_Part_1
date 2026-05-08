@@ -1,0 +1,7 @@
+// Cat 8: bare scale(...) at top level without evaluate — must fail
+// spec: scale is call-site only; must appear inside evaluate
+recipe base() serves 4 {
+    ingredient flour : 200 g
+    step "mix" { combine(flour) }
+}
+scale(base(), by: 2)

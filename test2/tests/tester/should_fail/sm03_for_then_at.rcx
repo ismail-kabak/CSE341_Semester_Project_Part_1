@@ -1,0 +1,8 @@
+// Cat 6: 'for' before 'at' — must fail (decision #23 requires at before for)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "bake" for 30 min at 180 °C {
+        combine(flour)
+    }
+}
+evaluate test()

@@ -1,0 +1,10 @@
+// Cat 8: evaluate inside a function body — must fail (spec §9)
+recipe r() serves 1 {
+    ingredient flour : 200 g
+    step "x" { combine(flour) }
+}
+function bad(n: int) -> int {
+    evaluate r()
+    return n
+}
+evaluate r()

@@ -1,0 +1,10 @@
+// Cat 2: quantity_of(quantity_of(x)) — nested; parser must accept
+// (Type checker will catch that the inner result is not an Ingredient — Part 2)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "x" {
+        let q : Mass = quantity_of(quantity_of(flour))
+        combine(flour)
+    }
+}
+evaluate test()

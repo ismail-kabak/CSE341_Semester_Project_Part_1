@@ -1,0 +1,12 @@
+// Exploratory 02 — foreach over a list
+recipe cooking() serves 4 {
+    ingredient flour : 200 g
+
+    step "Mix batches" {
+        foreach x in [1, 2, 3] {
+            combine(flour)
+        }
+    }
+}
+
+evaluate cooking()

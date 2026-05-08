@@ -1,0 +1,8 @@
+// Cat 6: step with only 'at' modifier — must work (decision #23)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "bake" at 180 °C {
+        combine(flour)
+    }
+}
+evaluate test()

@@ -1,0 +1,8 @@
+// Cat 1: spec §1 example "200 /* heavy */ g" — spec says valid, but Recipix
+// only defines // comments. Testing what actually happens.
+// Expected per spec: valid quantity. Actual: likely ParseError.
+recipe test() serves 1 {
+    ingredient flour : 200 /* heavy */ g
+    step "x" { combine(flour) }
+}
+evaluate test()

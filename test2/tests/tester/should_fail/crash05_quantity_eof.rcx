@@ -1,0 +1,5 @@
+// Cat 15: quantity literal at end-of-file — number without unit at EOF
+// The INT_LIT(200) will be parsed as an IntLit, then the ingredient expects
+// a quantity expression but gets EOF. Should not crash.
+recipe test() serves 1 {
+    ingredient flour : 200

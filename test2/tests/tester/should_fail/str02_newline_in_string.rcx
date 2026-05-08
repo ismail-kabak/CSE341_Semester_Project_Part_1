@@ -1,0 +1,9 @@
+// Cat 11: string literal with embedded newline — must fail (spec §1, decision #33)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "Mix
+dry ingredients" {
+        combine(flour)
+    }
+}
+evaluate test()

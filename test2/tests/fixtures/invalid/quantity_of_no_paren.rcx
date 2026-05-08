@@ -1,0 +1,12 @@
+// INVALID: quantity_of used without parentheses
+// Expected parse error at line 8: expected '(' after 'quantity_of'
+
+recipe bread() serves 1 {
+    ingredient flour : 200 g
+
+    step "Mix" {
+        let q : Mass = quantity_of flour
+    }
+}
+
+evaluate bread()

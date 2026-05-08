@@ -1,0 +1,12 @@
+// Exploratory 03 — quantity_of in arithmetic (explicit projection)
+recipe baking() serves 4 {
+    ingredient flour : 200 g
+    ingredient sugar : 100 g
+
+    step "Mix" {
+        let total : Mass = quantity_of(flour) + quantity_of(sugar)
+        combine(flour, sugar)
+    }
+}
+
+evaluate baking()

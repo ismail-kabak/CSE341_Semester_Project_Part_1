@@ -1,0 +1,11 @@
+// INVALID: trailing comma in list literal (Gap 2 — spec §13 grammar has no provision)
+// Expected parse error: "trailing comma in list literal is not permitted"
+
+function f(n: int) -> int {
+    foreach x in [1, 2, 3,] {
+        let y : int = x
+    }
+    return n
+}
+
+evaluate f(1)

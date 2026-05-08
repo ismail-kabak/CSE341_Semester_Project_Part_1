@@ -1,0 +1,6 @@
+// Cat 4: !(a < b) and a < b && b < c — must work
+function f(a: int, b: int, c: int) -> bool {
+    let x : bool = !(a < b)
+    return a < b && b < c
+}
+evaluate f(1, 2, 3)

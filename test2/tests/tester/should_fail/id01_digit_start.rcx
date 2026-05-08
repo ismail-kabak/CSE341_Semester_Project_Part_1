@@ -1,0 +1,9 @@
+// Cat 10: identifier starting with digit — must fail
+// '200foo' — lexer scans 200 then checks for glued alpha: fires LexerError
+// Note: error message may be misleading ("Missing separator between number and unit")
+// even though 'foo' is not a unit keyword
+recipe test() serves 1 {
+    ingredient 200foo : 200 g
+    step "x" { combine(200foo) }
+}
+evaluate test()

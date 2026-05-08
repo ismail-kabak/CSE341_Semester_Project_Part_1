@@ -1,0 +1,10 @@
+// Cat 9 (deferred): type mismatch — parser should ACCEPT (like sample3)
+// (type checker catches in Part 2)
+recipe broken() serves 1 {
+    ingredient flour : 200 g
+    ingredient water : 100 ml
+    step "x" {
+        let total : Mass = flour + water
+    }
+}
+evaluate broken()

@@ -1,0 +1,6 @@
+// Cat 10: identifier with underscore prefix — must work (spec §1 regex [a-zA-Z_][a-zA-Z0-9_]*)
+function _helper(n: int) -> int {
+    let _result : int = n * 2
+    return _result
+}
+evaluate _helper(5)

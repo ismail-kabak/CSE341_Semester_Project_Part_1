@@ -1,0 +1,6 @@
+// Cat 12: empty list literal — must work (spec §2)
+function f(n: int) -> int {
+    let items : int = []
+    return n
+}
+evaluate f(1)

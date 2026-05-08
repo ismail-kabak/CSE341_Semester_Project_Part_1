@@ -1,0 +1,8 @@
+// Cat 9 (deferred): redeclaration in same scope — parser should ACCEPT
+// (type checker catches in Part 2)
+function f(n: int) -> int {
+    let x : int = 1
+    let x : int = 2
+    return x
+}
+evaluate f(1)

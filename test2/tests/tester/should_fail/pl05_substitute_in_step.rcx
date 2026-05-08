@@ -1,0 +1,13 @@
+// Cat 8: substitute(...) used inside a step body as a statement — must fail
+// spec §9: call-site only
+// The parser doesn't handle substitute as a statement (_parse_stmt), so this tests
+// whether it's rejected properly.
+recipe smoothie(servings: int) serves servings {
+    ingredient milk     : 150 ml * servings
+    ingredient oat_milk : 150 ml * servings
+    step "blend" {
+        substitute(smoothie(servings: 2), milk, with: oat_milk, ratio: 1.0)
+        blend()
+    }
+}
+evaluate smoothie(servings: 2)

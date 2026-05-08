@@ -1,0 +1,9 @@
+// Exploratory 04 — scale(scale(r(), by:2), by:1.5) nested call
+recipe base() serves 4 {
+    ingredient flour : 200 g
+    step "Mix" {
+        combine(flour)
+    }
+}
+
+evaluate scale(scale(base(), by: 2), by: 1.5)

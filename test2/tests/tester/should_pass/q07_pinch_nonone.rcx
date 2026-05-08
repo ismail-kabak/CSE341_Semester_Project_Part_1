@@ -1,0 +1,7 @@
+// Cat 1: 5 pinch — spec says integer prefix required but ignored semantically
+// Same value as 1 pinch; parser should not care about the integer value.
+recipe test() serves 1 {
+    ingredient salt : 5 pinch
+    step "season" { sprinkle(salt) }
+}
+evaluate test()

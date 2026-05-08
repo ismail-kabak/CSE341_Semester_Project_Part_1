@@ -1,0 +1,12 @@
+// INVALID: step modifier 'for' before 'at' (Decision #23)
+// Expected parse error at line 7: 'at' modifier must come before 'for'
+
+recipe cake() serves 1 {
+    ingredient flour : 200 g
+
+    step "Bake" for 30 min at 180 °C {
+        bake(flour)
+    }
+}
+
+evaluate cake()

@@ -1,0 +1,7 @@
+// Cat 1: quantity literal — no space between number and unit
+// Expected: LexerError (decision #7)
+recipe test() serves 1 {
+    ingredient flour : 200g
+    step "x" { combine(flour) }
+}
+evaluate test()
