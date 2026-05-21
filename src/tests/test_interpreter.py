@@ -45,7 +45,48 @@ from recipix.runtime_values import (
 
 
 def _parse(source: str):
-    return parse(Lexer(source).tokenize())
+    program = parse(Lexer(source).tokenize())
+    _resolve_ambiguous_calls(program)
+    return program
+
+
+def _resolve_ambiguous_calls(program) -> None:
+    """Mini stand-in for İsmail's typechecker.
+
+    Walks the parsed AST, builds a name→decl table for top-level
+    recipes/functions, and rewrites every ``AmbiguousCall`` node into a
+    ``RecipeCall`` (with empty kwargs) or a ``FunctionCall`` (with empty
+    args). This is the minimum surface the interpreter needs after the
+    plan §3 handoff. The interpreter itself refuses to dispatch raw
+    ``AmbiguousCall`` so this rewrite is mandatory for any program with a
+    zero-arg recipe/function call.
+    """
+    name_kind: dict[str, str] = {}
+    for item in program.items:
+        if isinstance(item, ast.RecipeDecl):
+            name_kind[item.name] = "recipe"
+        elif isinstance(item, ast.FunctionDecl):
+            name_kind[item.name] = "function"
+
+    def rewrite(value):
+        if isinstance(value, ast.AmbiguousCall):
+            kind = name_kind.get(value.name)
+            if kind == "recipe":
+                return ast.RecipeCall(name=value.name, kwargs=[], line=value.line)
+            if kind == "function":
+                return ast.FunctionCall(name=value.name, args=[], line=value.line)
+            return value  # unresolved — interpreter will raise loudly
+        if isinstance(value, list):
+            for i, v in enumerate(value):
+                value[i] = rewrite(v)
+            return value
+        if hasattr(value, "__dataclass_fields__"):
+            for field_name in value.__dataclass_fields__:
+                setattr(value, field_name, rewrite(getattr(value, field_name)))
+            return value
+        return value
+
+    rewrite(program)
 
 
 def _eval_expr(source: str):
@@ -156,6 +197,61 @@ class TestArithmetic(unittest.TestCase):
         self.assertTrue(_eval_expr_value("1 kg > 500 g"))
         self.assertFalse(_eval_expr_value("1 kg < 500 g"))
         self.assertTrue(_eval_expr_value("1000 g == 1 kg"))
+
+
+class TestImplicitIngredientProjection(unittest.TestCase):
+    """Decision #31 — Ingredient implicitly projects to its Quantity field
+    in arithmetic, comparison, and substitution contexts. Spec §2:
+    `flour + 100 g` is shorthand for `quantity_of(flour) + 100 g`.
+    """
+
+    def test_ingredient_plus_quantity_in_step_body(self):
+        program = _parse("""
+            recipe r() serves 1 {
+                ingredient flour : 200 g
+                step "x" {
+                    // flour is an Ingredient; +100 g triggers the implicit
+                    // projection. Result is a Mass.
+                    let total : Mass = flour + 100 g
+                    sprinkle(total)
+                }
+            }
+            evaluate r()
+        """)
+        outs = run(program)
+        # total = 200 g + 100 g = 300 g — rendered as the sprinkle arg
+        self.assertIn("300 g", outs[0])
+
+    def test_ingredient_comparison_via_projection(self):
+        program = _parse("""
+            recipe r() serves 1 {
+                ingredient flour : 200 g
+                ingredient salt  : 1 pinch
+                step "x" {
+                    // flour > 100 g implicitly projects flour to Mass.
+                    if flour > 100 g { sprinkle(salt) } else { combine(flour) }
+                }
+            }
+            evaluate r()
+        """)
+        outs = run(program)
+        self.assertIn("sprinkle", outs[0])
+        self.assertNotIn("combine", outs[0])
+
+    def test_explicit_quantity_of_matches_implicit(self):
+        program = _parse("""
+            recipe r() serves 1 {
+                ingredient flour : 200 g
+                step "x" {
+                    let a : Mass = flour + 100 g
+                    let b : Mass = quantity_of(flour) + 100 g
+                    if a == b { sprinkle(flour) } else { combine(flour) }
+                }
+            }
+            evaluate r()
+        """)
+        outs = run(program)
+        self.assertIn("sprinkle", outs[0])
 
 
 # ---------------------------------------------------------------------------
@@ -474,6 +570,39 @@ class TestRuntimeErrors(unittest.TestCase):
         """)
         with self.assertRaises(RuntimeRecipixError):
             run(program)
+
+    def test_R4_substitute_unknown_ingredient(self):
+        # Substitute slots are bare IDENTs; the parser does not verify they
+        # name real ingredients. The typechecker normally catches this as
+        # error #14, but with a runtime-computed AST or absent typechecker
+        # the slot can still name a non-existent binding — and the
+        # interpreter must raise R4. See spec §10 runtime error #4.
+        program = _parse("""
+            recipe r() serves 1 {
+                ingredient flour : 200 g
+                ingredient alt   : 100 g
+                step "x" { combine(flour) }
+            }
+            evaluate substitute(r(), bogus, with: alt, ratio: 1.0)
+        """)
+        with self.assertRaises(RuntimeRecipixError) as cm:
+            run(program)
+        msg = str(cm.exception)
+        self.assertIn("substitute", msg)
+        self.assertIn("bogus", msg)
+
+    def test_R4_substitute_unknown_replacement(self):
+        program = _parse("""
+            recipe r() serves 1 {
+                ingredient flour : 200 g
+                ingredient alt   : 100 g
+                step "x" { combine(flour) }
+            }
+            evaluate substitute(r(), flour, with: ghost, ratio: 1.0)
+        """)
+        with self.assertRaises(RuntimeRecipixError) as cm:
+            run(program)
+        self.assertIn("ghost", str(cm.exception))
 
     def test_R5_division_by_zero_in_quantity(self):
         program = _parse("""

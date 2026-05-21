@@ -385,25 +385,16 @@ class Interpreter:
         )
 
     def _eval_AmbiguousCall(self, node, env):
-        # Type checker is expected to resolve and rewrite these. If a raw
-        # AmbiguousCall reaches us, attempt name-table dispatch as a fallback
-        # (zero-arg calls have no kwargs to disambiguate anyway).
-        kind = getattr(node, "resolved_kind", None)
-        try:
-            decl = env.lookup(node.name)
-        except KeyError:
-            raise RuntimeRecipixError(
-                node.line, f"unknown name in call: {node.name!r}"
-            ) from None
-        if kind == "recipe" or isinstance(decl, ast.RecipeDecl):
-            fake = ast.RecipeCall(name=node.name, kwargs=[], line=node.line)
-            return self._eval_RecipeCall(fake, env)
-        if kind == "function" or isinstance(decl, ast.FunctionDecl):
-            fake = ast.FunctionCall(name=node.name, args=[], line=node.line)
-            return self._eval_FunctionCall(fake, env)
+        # Contract (plan §3): the typechecker rewrites every AmbiguousCall
+        # into a FunctionCall or a RecipeCall before the interpreter runs.
+        # Reaching this method is therefore an integration bug — fail loudly
+        # so the missing typechecker pass cannot hide behind a silent
+        # symbol-table fallback. Tests that genuinely want to exercise a
+        # zero-arg call construct the resolved AST node directly.
         raise RuntimeRecipixError(
             node.line,
-            "AmbiguousCall reached interpreter — typechecker did not run",
+            f"AmbiguousCall {node.name!r} reached interpreter — "
+            "typechecker did not run (or did not rewrite the node)",
         )
 
     def _eval_RecipeCall(self, node, env):
