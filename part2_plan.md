@@ -1,6 +1,6 @@
 # Recipix Part 2 — Plan & Runtime Contract
 
-**Status:** Rev 2 — incorporates feedback pass, awaiting İsmail's sign-off
+**Status:** Rev 3 — scaffolding landed at commits `bd51a45` + `cd3a31d`; partners can start coding against stubs immediately
 **Submission:** Friday, 22 May 2026, 23:59 (~60 hours from now)
 **Exam:** Thursday, 28 May 2026, 08:30, in-class, 90 min
 
@@ -9,6 +9,43 @@ made Part 1 work. **It must be reviewed, argued over, and signed off in a
 single joint session before either partner writes a line of Part 2 code.**
 The Part 1 win was that we front-loaded the contract; the same move
 applies here.
+
+### Rev 3 change log (most recent — read first)
+
+Repo reorganized and Part 2 module skeletons created. The plan is now
+backed by code, not just text. Two commits:
+
+- `bd51a45` — *repo: reorganize for Part 2 — move P1 artifacts to
+  docs/Deprecated, harvest test2 fixtures into src/tests/regression.*
+  P1 deliverables parked in `docs/Deprecated/`; ~70 fixtures harvested
+  from the old `src/test2/` clutter into `src/tests/regression/{should_pass,
+  should_fail, exploratory}/`; old `src/test2/` deleted.
+- `cd3a31d` — *recipix: scaffold Part 2 modules.* Five new files in
+  `src/recipix/`: `runtime_values.py`, `environment.py`,
+  `typechecker.py`, `interpreter.py`, `rendering.py`. `errors.py`
+  extended with `TypeCheckError`, `RuntimeRecipixError`,
+  `RedeclarationError`. CLI gained `--typecheck` and `--run` flags
+  (both currently raise `NotImplementedError` from the stubs — that's
+  expected).
+
+**For İsmail (and his agents):** the type-checker stub at
+`src/recipix/typechecker.py` is your entry point. The shared infrastructure
+in `environment.py` and `runtime_values.py` is **fully implemented, not
+stubbed** — you can call `Environment.declare_check()` and `define()`
+from day one, and the `RtQuantity`/`RtIngredient`/`RtRecipe` dataclasses
+are ready to be the values stored in the env. See §2.8 "Scaffolding
+status" below for the full status table and quick-start commands.
+
+Changes other than the scaffolding:
+
+- §2.2, §2.5 — annotated with file paths and "fully implemented vs
+  stub" status.
+- §2.7 — file-layout section rewritten to reflect the actual tree, with
+  per-file ownership and implementation-status flags.
+- §2.8 — **new section.** Scaffolding status + quick-start commands.
+  This is what an agent reads to understand where to start.
+- §6 — six honest regression-test failures noted; triage plan listed.
+  None block coding.
 
 ### Rev 2 change log
 
@@ -105,8 +142,10 @@ against the un-annotated AST. Berk does not block on İsmail.
 
 ### 2.2 Runtime value representations
 
-Defined together in `src/recipix/runtime_values.py`. Both modules import
-from this file.
+**Status: fully implemented** in `src/recipix/runtime_values.py` as of
+commit `cd3a31d`. Both modules import from this file. The dataclasses
+below are real, not stubs; the `normalize_to_base()` function and the
+`BASE_UNIT` / conversion-factor tables are likewise implemented.
 
 ```python
 @dataclass
@@ -188,8 +227,9 @@ place it can extend without changing the grammar.
 
 ### 2.5 Environment chain
 
-Shared module `src/recipix/environment.py`, authored once (Berk drafts;
-İsmail reviews):
+**Status: fully implemented** in `src/recipix/environment.py` as of
+commit `cd3a31d`. The class below is real, not a stub. Both modules
+import it directly; do not re-implement.
 
 ```python
 class Environment:
@@ -205,6 +245,17 @@ duplication.
 
 **Single-assignment + no-shadowing enforcement lives in the
 type checker**, via `declare_check()` before every `define()`.
+
+Both methods raise the specific exception
+`recipix.errors.RedeclarationError` (a `KeyError` subclass) on
+violation. The type checker is expected to catch it and wrap-and-re-
+raise it as a `TypeCheckError(error_code=5)` (single-assignment) or
+`error_code=6` (shadowing) with proper line/col, so the user sees the
+canonical `type error at line X, col Y: ...` format rather than a
+Python traceback. The runtime interpreter does not call
+`declare_check()`; it only calls `define()`, since by the time the
+interpreter runs, the checker has already proven the program is well-
+scoped.
 
 **Scope convention for shadowing checks:** parameter lists live in the
 same scope as the body they introduce — a function's parameters are
@@ -241,25 +292,136 @@ These were missing from the first draft. They are short but graded.
   `scale(recipe-of-3, by: 0.5) → servings = 2`,
   `scale(recipe-of-3, by: 2/3) → servings = 2`.
 
-### 2.7 File layout
+### 2.7 File layout — actual tree as of commit `cd3a31d`
 
 ```
-src/recipix/
-  __main__.py            # CLI — extended with --typecheck and --run flags
-  parser.py              # unchanged from Part 1
-  ast_nodes.py           # unchanged from Part 1
-  tokens.py              # unchanged from Part 1
-  errors.py              # EXTENDED — adds TypeCheckError, RuntimeRecipixError
-  pretty.py              # unchanged from Part 1
-  environment.py         # NEW — joint, Berk drafts
-  runtime_values.py      # NEW — joint, Berk drafts
-  typechecker.py         # NEW — İsmail owns
-  interpreter.py         # NEW — Berk owns
-  rendering.py           # NEW — Berk owns
-
-src/lexer.py             # unchanged from Part 1
-src/tokens.py            # unchanged from Part 1
+.
+├── main.py                          # CLI launcher — unchanged
+├── part2_plan.md                    # THIS DOCUMENT
+├── docs/
+│   ├── CSE341_Project_Handout.pdf
+│   ├── CSE341_Submission_Guide.pdf
+│   ├── README.md                    # parser implementation guide
+│   ├── recipix_v4_1_spec.md         # locked language spec — source of truth
+│   └── Deprecated/                  # P1 graded artifacts (audit trail only)
+└── src/
+    ├── lexer.py                     # P1 — DO NOT MODIFY
+    ├── recipix/
+    │   ├── __init__.py              # extended: exports parse, check, run
+    │   ├── __main__.py              # extended: --typecheck, --run flags
+    │   ├── tokens.py                # P1 — DO NOT MODIFY
+    │   ├── ast_nodes.py             # P1 — DO NOT MODIFY
+    │   ├── parser.py                # P1 — DO NOT MODIFY
+    │   ├── pretty.py                # P1 — DO NOT MODIFY
+    │   ├── errors.py                # EXTENDED — see status table below
+    │   ├── environment.py           # NEW — fully implemented
+    │   ├── runtime_values.py        # NEW — fully implemented
+    │   ├── typechecker.py           # NEW — stubs, İsmail's work
+    │   ├── interpreter.py           # NEW — stubs, Berk's work
+    │   └── rendering.py             # NEW — stubs, Berk's work
+    └── tests/
+        ├── fixtures/                # P1 golden set (sample1/2/3 + 5 invalid)
+        ├── regression/              # NEW — harvested from old test2/
+        │   ├── should_pass/         # 26 fixtures
+        │   ├── should_fail/         # 39 fixtures
+        │   └── exploratory/         # 5 fixtures (Part 2 testbed)
+        ├── test_lexer.py
+        ├── test_parser.py           # 48 tests, all passing
+        └── test_regression.py       # NEW — 65 tests, 6 known failures (§6)
 ```
+
+| File | Status | Owner | What it contains |
+|------|--------|-------|------------------|
+| `runtime_values.py` | ✅ implemented | joint (Berk drafted) | `RtQuantity`, `RtPinch`/`PINCH`, `RtIngredient`, `RtRecipe`, `RtList`, `BASE_UNIT` table, `normalize_to_base(value, unit) -> (base_value, dimension)`. Real conversion math from spec §3. |
+| `environment.py` | ✅ implemented | joint (Berk drafted) | `Environment(parent=None)` with `define`, `lookup`, `declare_check`, `has_local`. Type-agnostic — used by both checker and interpreter. |
+| `errors.py` | ✅ extended | joint | Original `ParseError` (unchanged) + new `TypeCheckError(line, col, message, error_code=None)`, `RuntimeRecipixError(line, message)`, `RedeclarationError(KeyError)`. Format strings match the established `parse error at line X, col Y: ...` convention. |
+| `typechecker.py` | ◯ stub | **İsmail** | `class TypeChecker` with per-node-type `_check_*` methods, all `raise NotImplementedError`. Module-level `check(program) -> Program` entry point. Comment block lists all 19 errors from spec §10. |
+| `interpreter.py` | ◯ stub | **Berk** | `class Interpreter` with per-node-type methods, all `raise NotImplementedError`. Module-level `run(program, *, render_output=True) -> list[str]`. Comment block lists the 5 runtime errors + the `int(round(...))` scaling rule. |
+| `rendering.py` | ◯ stub | **Berk** | `render_recipe(r)`, `render_quantity(q)`. Stub bodies. |
+
+### 2.8 Scaffolding status — quick-start for partners and their agents
+
+This is the section to read first if you're sitting down to write code.
+Each numbered step takes <5 minutes.
+
+**1. Sanity-check that the scaffolding imports cleanly:**
+
+```bash
+cd /path/to/CSE341_Semester_Project_Part_1
+python -c "from recipix import parse, check, run; \
+           from recipix.environment import Environment; \
+           from recipix.runtime_values import RtQuantity, normalize_to_base, PINCH; \
+           from recipix.errors import TypeCheckError, RuntimeRecipixError, RedeclarationError; \
+           print('imports OK')"
+```
+
+If that says `imports OK`, you can start writing the checker or
+interpreter immediately. If it raises, the scaffolding is broken — stop
+and investigate before doing anything else.
+
+**2. Run the existing test baseline:**
+
+```bash
+python -m unittest discover src/tests
+```
+
+Expected: **113 tests run, 6 known failures (see §6 triage list).**
+The 48 parser tests in `test_parser.py` and the 65 regression tests
+minus 6 deferred = your green baseline. If parser tests start failing
+after you commit, you've broken a Part 1 contract — revert and ask.
+
+**3. Start where the stub directs you.**
+
+For **İsmail's first commit** (the critical handoff per §3 — target Thu
+21 May 12:00):
+
+- Open `src/recipix/typechecker.py`. The `class TypeChecker` skeleton
+  already lists every AST node type. Pick `_check_AmbiguousCall`,
+  `_check_FunctionDecl`, `_check_RecipeDecl`. Build the symbol table.
+  Replace `AmbiguousCall` nodes in the program with `FunctionCall` or
+  `RecipeCall` by name resolution. **This alone unblocks Berk's
+  interpreter.** Everything else in §10 can wait until later in the day.
+- The shadowing check uses `Environment.declare_check(name)` — already
+  implemented. Catch `RedeclarationError`, re-raise as
+  `TypeCheckError(error_code=5 or 6, line=node.line, col=node.col, ...)`.
+
+For **Berk's first commit**:
+
+- Open `src/recipix/interpreter.py`. Start with literal evaluation
+  (`_eval_IntLit`, `_eval_FloatLit`, `_eval_BoolLit`, `_eval_StringLit`),
+  then `_eval_QuantityLit` (call `normalize_to_base()` — already there),
+  then `_eval_Identifier` (call `env.lookup()` — already there),
+  then `_eval_BinaryOp` for numeric arithmetic only. Goal: `2 + 2`
+  through the CLI before lunch Thursday.
+- The runtime env class is the same `Environment`; store `RtQuantity`,
+  `RtIngredient`, etc. values directly.
+
+**4. The CLI flags to test against:**
+
+```bash
+python main.py src/tests/fixtures/valid/sample1.rcx               # parse-only (unchanged)
+python main.py --dump-ast src/tests/fixtures/valid/sample1.rcx    # parse + AST dump (unchanged)
+python main.py --typecheck src/tests/fixtures/valid/sample1.rcx   # NEW — currently NotImplementedError
+python main.py --run src/tests/fixtures/valid/sample1.rcx         # NEW — currently NotImplementedError
+```
+
+The first two must keep working at every commit. The latter two will
+incrementally start working as you fill in stubs. The day all four
+report sensible output on all three valid samples and the type-error
+sample, you're done with D2.
+
+**5. Where to find what:**
+
+| If you need... | Look at... |
+|---|---|
+| AST node shapes | `src/recipix/ast_nodes.py` (P1, locked) |
+| Token type constants | `src/recipix/tokens.py` (P1, locked) |
+| The spec | `docs/recipix_v4_1_spec.md` — search by decision number (#1–#35) |
+| The 19 errors to enforce | spec §10 + plan §2.6 error #19 (single-return) |
+| Action-verb signatures | plan §2.3 (three classes only) |
+| Sample expected outputs | `tests/expected/` — **TBD, write at Phase 0 meeting** |
+| Dimension conversion math | `src/recipix/runtime_values.py::normalize_to_base` |
+| Scoping rules | plan §2.5 + `src/recipix/environment.py` |
 
 ---
 
@@ -384,6 +546,26 @@ shippable:
 | **Fri 22 May, PM** | Writing — D3 then D1 | D3 PDF (outputs + 1 type-error trace). D1 [P2] sections (§4.4, §4.5, §4.7, §4.8). |
 | **Fri 22 May, evening** | D5 + D6 + D4 catch-up | Each writes own D5 (1 page); joint D6 (½ page, both sign); each finalizes own D4. |
 | **Fri 22 May, 23:59** | Submission | All six deliverables uploaded. |
+
+### Known regression-test failures (do not silence)
+
+Six of the 65 tests in `test_regression.py` fail against the Part 1
+parser. The agent that harvested the fixtures left them visible
+deliberately. Triage:
+
+| Test | Why it fails | Disposition |
+|------|--------------|-------------|
+| `should_fail/pl03_scale_in_ingredient` | `scale` inside a recipe body. Parser accepts; the rejection belongs to the **type checker** per §5 task 4. | Will pass once İsmail's `evaluate`-only check lands. **Do not modify the parser.** |
+| `should_fail/pl06_scale_in_step_expr` | Same as above — type-checker work. | Same. |
+| `should_fail/crash01_empty_file` | 0-byte file. Parser accepts empty programs (`Program(items=[])`). | **Design call: delete the fixture.** Rejecting empty files is hostile and spec-silent. |
+| `should_pass/cmp03_cross_level` | Fixture claims `a < b == c` parses. Spec decision #17 explicitly forbids comparison chaining (non-associative). | **Move to `should_fail/`** — spec wins; fixture was written wrong. |
+| `should_pass/prec01_full_hierarchy` | Same dispute as above. | Same fix. |
+| `should_pass/crash04_deep_parens` | 200 nested parens hits Python's default recursion limit (1000 frames). | **Move to `regression/stress/`** and skip in normal CI, or bump `sys.setrecursionlimit(5000)` at the top of `parse()`. Cosmetic. |
+
+The fixture moves are a 30-second job — do them in the same commit as
+your first scaffolding work, but **before** writing any parser code,
+because two of them require zero parser changes (they're spec
+disagreements baked into wrongly-categorized fixtures).
 
 ### Working rules for the 60-hour window
 
