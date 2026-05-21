@@ -2,68 +2,101 @@
 Recipix Part 2 rendering — cookbook-style output for evaluated recipes.
 
 Owner:   Berk Hakan Öge (210104004132)
-Plan:    Implements plan §2.4 (rendering unit heuristic: ``g``→``kg`` at
-         ≥1000, ``ml``→``l`` at ≥1000, ``min``→``hr`` at ≥60; ``count``
-         and ``°C`` always shown as-is).
-
-Summary
--------
-Stateless helpers that walk an :class:`~recipix.runtime_values.RtRecipe`
-and produce the human-readable string that an ``evaluate`` statement
-prints. The rendering heuristic is intentionally simple — base-unit
-numerics are kept for arithmetic correctness, but a 2500-gram ingredient
-should print as ``2.5 kg``, not ``2500 g``. See plan §2.4 for the
-unit-promotion thresholds.
-
-The two public entry points are :func:`render_recipe` (top-level, for
-``EvalStmt`` use) and :func:`render_quantity` (the unit-heuristic
-helper, exported in case the interpreter wants to format quantities
-elsewhere).
+Plan:    Implements plan §2.4 — Mass: g/kg at 1000; Volume: ml/l at 1000;
+         Duration: min/hr at 60; Count and Temperature shown as-is.
 """
 
 from __future__ import annotations
 
-from .runtime_values import RtRecipe, RtQuantity
-
-
-def render_recipe(r: RtRecipe) -> str:
-    """
-    Produce a cookbook-style multi-line string for an evaluated recipe.
-
-    Layout (subject to integration-day polish):
-
-        <Recipe Name> — serves N
-
-        Ingredients:
-          <ingredient name>: <rendered quantity>
-          ...
-
-        Steps:
-          1. <step description> [at <quantity>] [for <quantity>]
-             <action verb> <args>
-          ...
-
-    Not yet implemented.
-    """
-    raise NotImplementedError("recipix.rendering.render_recipe is not implemented yet")
+from .runtime_values import RtIngredient, RtPinch, RtQuantity, RtRecipe
 
 
 def render_quantity(q: RtQuantity) -> str:
-    """
-    Render a :class:`RtQuantity` using the plan §2.4 unit-promotion
-    heuristic. The input value is in the dimension's base unit; this
-    function may scale it back up for display.
+    """Plan §2.4 unit-promotion heuristic."""
+    v = q.value
+    if q.dimension == "Mass":
+        if abs(v) < 1000:
+            return f"{_fmt(v)} g"
+        return f"{_fmt(v / 1000)} kg"
+    if q.dimension == "Volume":
+        if abs(v) < 1000:
+            return f"{_fmt(v)} ml"
+        return f"{_fmt(v / 1000)} l"
+    if q.dimension == "Duration":
+        if abs(v) < 60:
+            return f"{_fmt(v)} min"
+        return f"{_fmt(v / 60)} hr"
+    if q.dimension == "Count":
+        return _fmt(v)
+    if q.dimension == "Temperature":
+        return f"{_fmt(v)} °C"
+    return f"{_fmt(v)} ?{q.dimension}"
 
-    Heuristic (plan §2.4):
-      - Mass:        value < 1000   → ``g``; else ``kg`` (value / 1000)
-      - Volume:      value < 1000   → ``ml``; else ``l`` (value / 1000)
-      - Duration:    value < 60     → ``min``; else ``hr`` (value / 60)
-      - Count:       always shown as the bare number (no unit suffix)
-      - Temperature: always shown as ``<value> °C``
 
-    Not yet implemented.
-    """
-    raise NotImplementedError("recipix.rendering.render_quantity is not implemented yet")
+def _fmt(v) -> str:
+    if isinstance(v, int):
+        return str(v)
+    if v == int(v):
+        return str(int(v))
+    # Trim trailing zeros to avoid 1.50 -> "1.50"; keep 1.5
+    s = f"{v:.4f}".rstrip("0").rstrip(".")
+    return s or "0"
+
+
+def _render_ingredient_value(rti: RtIngredient) -> str:
+    if isinstance(rti.quantity, RtPinch):
+        return "a pinch"
+    return render_quantity(rti.quantity)
+
+
+def _render_action_arg(arg, recipe: RtRecipe) -> str:
+    tag, payload = arg
+    if tag == "ingredient_ref":
+        ing = recipe.ingredients.get(payload)
+        if ing is None:
+            return payload
+        return ing.name
+    # value
+    v = payload
+    if isinstance(v, RtIngredient):
+        return v.name
+    if isinstance(v, RtQuantity):
+        return render_quantity(v)
+    if isinstance(v, RtPinch):
+        return "a pinch"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return _fmt(v)
+    if isinstance(v, str):
+        return v
+    return repr(v)
+
+
+def render_recipe(r: RtRecipe) -> str:
+    lines: list[str] = []
+    lines.append(f"{r.name} — serves {r.servings}")
+    lines.append("")
+    lines.append("Ingredients:")
+    for key, ing in r.ingredients.items():
+        lines.append(f"  {ing.name}: {_render_ingredient_value(ing)}")
+    lines.append("")
+    lines.append("Steps:")
+    for idx, step in enumerate(r.steps, start=1):
+        modifiers: list[str] = []
+        if step["at"] is not None:
+            modifiers.append(f"at {render_quantity(step['at'])}")
+        if step["for"] is not None:
+            modifiers.append(f"for {render_quantity(step['for'])}")
+        suffix = (" " + " ".join(modifiers)) if modifiers else ""
+        lines.append(f"  {idx}. {step['description']}{suffix}")
+        for verb, args in step["actions"]:
+            rendered = ", ".join(_render_action_arg(a, r) for a in args)
+            if rendered:
+                lines.append(f"     - {verb}({rendered})")
+            else:
+                lines.append(f"     - {verb}()")
+    return "\n".join(lines)
 
 
 __all__ = ["render_recipe", "render_quantity"]
