@@ -31,13 +31,12 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from .errors import RedeclarationError, ShadowingError
 
-class RedeclarationError(KeyError):
-    """Raised by :meth:`Environment.define` when a name is already in this scope."""
-
-
-class ShadowingError(KeyError):
-    """Raised by :meth:`Environment.declare_check` when a name is visible up-chain."""
+# Re-exported so existing ``from recipix.environment import RedeclarationError``
+# style imports keep working — but the canonical home is now
+# :mod:`recipix.errors`. New code should import from there.
+__all__ = ["Environment", "RedeclarationError", "ShadowingError"]
 
 
 class Environment:

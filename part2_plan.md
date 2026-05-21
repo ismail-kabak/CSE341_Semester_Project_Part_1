@@ -246,13 +246,20 @@ duplication.
 **Single-assignment + no-shadowing enforcement lives in the
 type checker**, via `declare_check()` before every `define()`.
 
-Both methods raise the specific exception
-`recipix.errors.RedeclarationError` (a `KeyError` subclass) on
-violation. The type checker is expected to catch it and wrap-and-re-
-raise it as a `TypeCheckError(error_code=5)` (single-assignment) or
-`error_code=6` (shadowing) with proper line/col, so the user sees the
-canonical `type error at line X, col Y: ...` format rather than a
-Python traceback. The runtime interpreter does not call
+The two methods raise two distinct `KeyError` subclasses, both living
+in `recipix.errors`:
+
+- `Environment.define()` raises `RedeclarationError` when a name is
+  already bound in this exact scope (single-assignment, spec §10 error
+  #5).
+- `Environment.declare_check()` raises `ShadowingError` when a name is
+  visible anywhere up the parent chain (no-shadowing, spec §10 error
+  #6).
+
+The type checker catches each and re-raises as `TypeCheckError` with
+`error_code=5` or `error_code=6` respectively, plus proper line/col, so
+the user sees the canonical `type error at line X, col Y: ...` format
+rather than a Python traceback. The runtime interpreter does not call
 `declare_check()`; it only calls `define()`, since by the time the
 interpreter runs, the checker has already proven the program is well-
 scoped.
@@ -351,7 +358,7 @@ cd /path/to/CSE341_Semester_Project_Part_1
 python -c "from recipix import parse, check, run; \
            from recipix.environment import Environment; \
            from recipix.runtime_values import RtQuantity, normalize_to_base, PINCH; \
-           from recipix.errors import TypeCheckError, RuntimeRecipixError, RedeclarationError; \
+           from recipix.errors import TypeCheckError, RuntimeRecipixError, RedeclarationError, ShadowingError; \
            print('imports OK')"
 ```
 

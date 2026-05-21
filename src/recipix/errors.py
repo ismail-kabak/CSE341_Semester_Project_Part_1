@@ -16,6 +16,17 @@ The wire format for the three is kept aligned so a single CLI sink
 
 Both Part 2 classes are additive — ``ParseError`` is untouched so the
 Part 1 parser keeps working without changes.
+
+Two lower-level ``KeyError`` subclasses, ``RedeclarationError`` and
+``ShadowingError``, are raised by :mod:`recipix.environment` when the
+scope chain detects a binding violation. The type checker is expected
+to catch these and wrap-and-re-raise them as a ``TypeCheckError`` with
+``error_code=5`` (single-assignment) or ``error_code=6`` (shadowing),
+plus proper line/col, so the user sees the canonical
+``type error at line X, col Y: ...`` format instead of a Python
+traceback. They live in this module — not in ``environment.py`` —
+because they belong to the error vocabulary of the language, not to
+the data structure that happens to detect them.
 """
 
 
@@ -56,6 +67,28 @@ class TypeCheckError(Exception):
 
     def _format(self) -> str:
         return f"type error at line {self.line}, col {self.col}: {self.message}"
+
+
+class RedeclarationError(KeyError):
+    """
+    Raised by :meth:`recipix.environment.Environment.define` when a
+    name is already bound in the current scope (single-assignment
+    violation — spec §10 error #5).
+
+    The type checker catches this and re-raises as
+    ``TypeCheckError(error_code=5)`` with proper line/col.
+    """
+
+
+class ShadowingError(KeyError):
+    """
+    Raised by :meth:`recipix.environment.Environment.declare_check`
+    when a name is visible anywhere up the parent chain (no-shadowing
+    violation — spec §10 error #6).
+
+    The type checker catches this and re-raises as
+    ``TypeCheckError(error_code=6)`` with proper line/col.
+    """
 
 
 class RuntimeRecipixError(Exception):
