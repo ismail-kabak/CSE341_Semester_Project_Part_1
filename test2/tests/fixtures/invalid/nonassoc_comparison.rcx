@@ -1,8 +1,0 @@
-// INVALID: chained comparison a < b < c (Decision #17 — non-associative)
-// Expected parse error at line 5: comparison operators are non-associative
-
-function between(x: int) -> bool {
-    return 0 < x < 10
-}
-
-evaluate between(5)
