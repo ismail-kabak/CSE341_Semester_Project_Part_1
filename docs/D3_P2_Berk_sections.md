@@ -179,23 +179,27 @@ recipe broken() serves 1 {
 evaluate broken()
 ```
 
-### Type-error trace and discussion
+### Type-error trace
 
-> **TODO İsmail:** once your type checker is wired in and rejects sample 3 with a real `type error at line N, col M: ...` message, paste the verbatim message here in a code block, then write the 3–5 sentence discussion paragraph below.
->
-> Discussion should cover: (a) which spec §10 error this is (#1, dimension mismatch in arithmetic), (b) how decision #31's implicit `Ingredient → Quantity` projection turns `flour` into a `Mass` and `water` into a `Volume` before the `+` operator runs its dimension check, (c) why this error is caught at type-check time rather than at run time — the type checker proves the program ill-typed before the interpreter ever sees it, (d) what concrete test in `test_typechecker.py` (or wherever you put it) pins this message so it can't drift.
->
-> The point of this section in the D3 [P2] report is to demonstrate that the language catches dimension mismatches *statically*, which is the headline claim of the spec (*"Dimensional type discipline"*, spec §0). A grader reading this section should be able to point at the specific error message and say "yes, this language is doing what it says it is."
-
-### Expected behaviour (from my reading of the spec)
-
-If your checker produces something close to this (with proper line/col from sample3.rcx), it lines up with my reading of the spec:
+Command run:
 
 ```
-type error at line 9, col 32: cannot add Mass and Volume (dimension mismatch; spec §10 error #1)
+python main.py --typecheck src/tests/fixtures/valid/sample3.rcx
 ```
 
-Line 9 is the `let total : Mass = flour + water` line; col 32 is the `+` operator location. The implicit projection (decision #31) converts `flour` (Ingredient<Mass>) to its `Mass` quantity and `water` (Ingredient<Volume>) to its `Volume` quantity before the `+` operator dispatches; the dimension-match check then fails. Spec §10 error #1 names this exact class.
+Verbatim output (exit code 1):
+
+```
+type error at line 13, col 0: dimension mismatch: cannot + Mass and Volume
+```
+
+Line 13 of `sample3.rcx` is the `let total : Mass = flour + water` line. The implicit `Ingredient → Quantity` projection (decision #31) turns `flour` (`Ingredient<Mass>`) into a `Mass` value and `water` (`Ingredient<Volume>`) into a `Volume` value before the `+` operator dispatches. The dimension-match check in `_check_BinaryOp` then refuses to add two different dimensions and raises `TypeCheckError(error_code=1)` — spec §10 error #1 ("dimension mismatch in arithmetic").
+
+### Discussion
+
+This is the headline-claim demonstration for Recipix: every numeric quantity carries a dimension at compile time, and any operation that mixes dimensions is rejected *before execution*. The dimension-mismatch error is caught entirely by the type checker — the interpreter never sees `sample3.rcx` because `check()` raises before `run()` is called. This is what spec §1 means by "dimensional type discipline" as the language's reason to exist: a generic scripting language treats `200` and `100` as raw integers and lets the programmer add grams to milliliters; Recipix lifts that dimensional structure into the type system and makes the nonsense impossible to express.
+
+The error message format follows the established `parse error at line X, col Y: ...` convention from Part 1 (now `type error` at the middle phase), so a user reading the error sees the same shape regardless of which compiler phase rejected their program. The trace is pinned by the type checker's `_check_BinaryOp → _check_quantity_binop` path in `src/recipix/typechecker.py`; the same path catches any `Mass + Volume`, `Temperature + Duration`, `Volume - Mass`, or similar cross-dimension arithmetic at compile time.
 
 ---
 
