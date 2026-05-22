@@ -1,0 +1,5 @@
+// Cat 4: (a < b) == c — parentheses override; must work
+function f(a: int, b: int, c: bool) -> bool {
+    return (a < b) == c
+}
+evaluate f(1, 2, true)

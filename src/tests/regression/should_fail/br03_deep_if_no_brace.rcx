@@ -1,0 +1,9 @@
+// Cat 5: deeply nested if without braces — must fail (decision #20)
+function f(a: int, b: int, c: int) -> bool {
+    if a < b {
+        if b < c
+            return true
+    }
+    return false
+}
+evaluate f(1, 2, 3)

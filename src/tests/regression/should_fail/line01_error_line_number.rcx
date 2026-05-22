@@ -1,0 +1,12 @@
+// Cat 14: error line number check
+// The parse error is on line 8 (the 'if' without braces)
+// Expected: error message cites line 8
+
+function f(n: int) -> int {
+    let x : int = 1
+    let y : int = 2
+    if n < 5
+        return 1
+    return 2
+}
+evaluate f(3)

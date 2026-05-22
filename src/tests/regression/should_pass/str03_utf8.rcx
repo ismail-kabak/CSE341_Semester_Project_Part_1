@@ -1,0 +1,8 @@
+// Cat 11: UTF-8 string literal — must work (spec §1, decision #33)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "Hamuru karıştır" {
+        knead(flour)
+    }
+}
+evaluate test()

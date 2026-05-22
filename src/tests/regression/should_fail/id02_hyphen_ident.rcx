@@ -1,0 +1,8 @@
+// Cat 10: hyphen in identifier — must fail (spec §6: hyphens not allowed)
+// Lexer produces: IDENT(oat) MINUS IDENT(milk) — three tokens
+// Parser: 'ingredient oat' then expects ':' but gets MINUS
+recipe test() serves 1 {
+    ingredient oat-milk : 150 ml
+    step "blend" { blend() }
+}
+evaluate test()

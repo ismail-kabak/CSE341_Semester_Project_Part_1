@@ -1,0 +1,7 @@
+// Cat 4: a < b < c mixed with == at same nesting level
+// a < b == c < d — should fail because after (a < b) == c, the c is followed by < d
+// which creates another comparison at the rel level after an eq comparison
+function f(a: int, b: int, c: int, d: int) -> bool {
+    return a < b == c < d
+}
+evaluate f(1, 2, 3, 4)

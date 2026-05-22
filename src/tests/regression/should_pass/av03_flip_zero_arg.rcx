@@ -1,0 +1,8 @@
+// Cat 7: flip() with zero args — must work (spec §8, also in sample1)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "cook" {
+        flip()
+    }
+}
+evaluate test()

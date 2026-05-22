@@ -1,0 +1,8 @@
+// Cat 12: single-element list — must work
+function f(n: int) -> int {
+    foreach x in [42] {
+        let y : int = x
+    }
+    return n
+}
+evaluate f(1)

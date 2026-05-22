@@ -1,0 +1,10 @@
+// Cat 9 (deferred): shadowing outer-scope name — parser should ACCEPT
+// (type checker catches in Part 2)
+function f(x: int) -> int {
+    if x < 10 {
+        let x : int = 99
+        return x
+    }
+    return x
+}
+evaluate f(5)

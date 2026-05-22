@@ -1,0 +1,7 @@
+// Cat 7: action verb keyword used as ingredient name — must fail
+// 'combine' is ACTION_KW, not IDENT, so _expect(IDENT) should reject it
+recipe test() serves 1 {
+    ingredient combine : 1 g
+    step "x" { combine(combine) }
+}
+evaluate test()

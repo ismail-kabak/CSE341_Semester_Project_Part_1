@@ -1,0 +1,10 @@
+// Cat 2: quantity_of used as a bare value (no parens) — must fail (§2, decision #34)
+// spec: "Users cannot redefine it, assign it to a variable, or pass it as an argument"
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "x" {
+        let f : Mass = quantity_of
+        combine(flour)
+    }
+}
+evaluate test()

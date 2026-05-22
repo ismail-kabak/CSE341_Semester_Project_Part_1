@@ -1,0 +1,7 @@
+// Cat 1: expression followed by unit keyword
+// Expected: ParseError — decision #7/#30 forbids (expr) g
+recipe test() serves 1 {
+    ingredient flour : (2 * 3) g
+    step "x" { combine(flour) }
+}
+evaluate test()

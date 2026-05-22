@@ -1,0 +1,6 @@
+// Cat 9 (deferred): undeclared identifier use — parser should ACCEPT
+// (type checker catches in Part 2)
+function f(n: int) -> int {
+    return n + undeclared_var
+}
+evaluate f(1)

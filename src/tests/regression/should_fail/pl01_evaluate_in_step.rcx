@@ -1,0 +1,12 @@
+// Cat 8: evaluate inside a recipe step body — must fail (spec §9 call-site only)
+recipe inner() serves 1 {
+    ingredient flour : 200 g
+    step "x" { combine(flour) }
+}
+recipe outer() serves 1 {
+    ingredient flour : 100 g
+    step "y" {
+        evaluate inner()
+    }
+}
+evaluate outer()

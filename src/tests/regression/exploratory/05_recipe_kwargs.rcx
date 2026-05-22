@@ -1,0 +1,9 @@
+// Exploratory 05 — recipe call with multiple keyword args
+recipe complex(n: int, factor: float) serves n {
+    ingredient flour : 100 g * n
+    step "Mix" {
+        combine(flour)
+    }
+}
+
+evaluate complex(n: 4, factor: 1.5)

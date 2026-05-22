@@ -1,0 +1,16 @@
+// Cat 8: scale(...) used in an expression inside a step body — must fail
+// spec §9: "They cannot appear inside a recipe body."
+// Bug candidate: _parse_primary handles 'scale' anywhere — parser may accept this.
+recipe base() serves 4 {
+    ingredient flour : 200 g
+    step "mix" { combine(flour) }
+}
+recipe wrapper() serves 4 {
+    ingredient flour : 200 g
+    step "x" {
+        let r : int = 1
+        let s : int = scale(base(), by: 2)
+        combine(flour)
+    }
+}
+evaluate wrapper()

@@ -1,0 +1,8 @@
+// Cat 11: empty string literal — must work (spec §1)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "" {
+        combine(flour)
+    }
+}
+evaluate test()

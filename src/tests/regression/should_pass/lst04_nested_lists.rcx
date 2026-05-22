@@ -1,0 +1,7 @@
+// Cat 12: nested list literals — parser must accept
+// (type checker enforces homogeneity in Part 2)
+function f(n: int) -> int {
+    let grid : int = [[1, 2], [3, 4]]
+    return n
+}
+evaluate f(1)

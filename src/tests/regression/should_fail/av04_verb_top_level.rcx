@@ -1,0 +1,3 @@
+// Cat 7: action verb at top level (outside recipe/function) — must fail
+// spec §9: top level only allows recipe, function, evaluate
+combine(flour)

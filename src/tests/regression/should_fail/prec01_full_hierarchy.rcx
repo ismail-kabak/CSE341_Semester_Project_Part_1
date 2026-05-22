@@ -1,0 +1,8 @@
+// Cat 13: full precedence hierarchy in one expression
+// Expected AST shape: 1 + 2*3 < 4 == 5 && 6 || 7
+// = (((1 + (2*3)) < 4) == 5) && 6) || 7
+// Run with --dump-ast to verify tree shape
+function f() -> bool {
+    return 1 + 2 * 3 < 4 == true && false || true
+}
+evaluate f()

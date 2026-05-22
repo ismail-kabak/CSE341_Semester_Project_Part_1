@@ -1,0 +1,21 @@
+// Exploratory 01 — nested if/else
+function classify(n: int) -> bool {
+    if n < 10 {
+        if n < 5 {
+            return true
+        } else {
+            return false
+        }
+    } else {
+        return false
+    }
+}
+
+recipe dummy() serves 1 {
+    ingredient salt : 1 pinch
+    step "check" {
+        combine(salt)
+    }
+}
+
+evaluate dummy()

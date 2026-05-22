@@ -1,0 +1,7 @@
+// Cat 3: missing with: keyword — must fail
+recipe smoothie(servings: int) serves servings {
+    ingredient milk     : 150 ml * servings
+    ingredient oat_milk : 150 ml * servings
+    step "blend" { blend() }
+}
+evaluate substitute(smoothie(servings: 2), milk, oat_milk, ratio: 1.0)

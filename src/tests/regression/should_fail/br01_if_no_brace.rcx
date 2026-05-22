@@ -1,0 +1,7 @@
+// Cat 5: if without braces — must fail (decision #20)
+function f(n: int) -> bool {
+    if n < 5
+        return true
+    return false
+}
+evaluate f(3)

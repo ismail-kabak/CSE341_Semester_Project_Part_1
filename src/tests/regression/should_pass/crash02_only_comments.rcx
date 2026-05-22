@@ -1,0 +1,3 @@
+// This file contains only comments — no declarations
+// The parser should produce an empty Program node without crashing.
+// Per spec: top level may be empty (no recipe/function/evaluate).

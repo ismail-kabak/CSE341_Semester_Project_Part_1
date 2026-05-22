@@ -1,0 +1,5 @@
+// Cat 4: chained < — non-associative, must fail (decision #17)
+function f(a: int, b: int, c: int) -> bool {
+    return a < b < c
+}
+evaluate f(1, 2, 3)

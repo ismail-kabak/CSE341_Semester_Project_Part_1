@@ -1,0 +1,9 @@
+// Cat 11: backslash in string — no escape sequences in v1, so "\n" is literal backslash-n
+// Must work — the lexer should accept any non-quote, non-newline character
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "Mix\nBlend" {
+        combine(flour)
+    }
+}
+evaluate test()

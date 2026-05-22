@@ -1,0 +1,9 @@
+// Cat 7: action verb in expression position — must fail (spec §8)
+recipe test() serves 1 {
+    ingredient flour : 200 g
+    step "x" {
+        let v : bool = combine == combine
+        combine(flour)
+    }
+}
+evaluate test()

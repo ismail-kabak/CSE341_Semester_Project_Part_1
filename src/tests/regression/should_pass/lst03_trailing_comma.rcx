@@ -1,0 +1,9 @@
+// Cat 12: trailing comma in list literal — spec is silent, parser accepts (spec gap)
+// This is NOT a bug; it's a spec gap: the spec neither allows nor forbids trailing commas.
+function f(n: int) -> int {
+    foreach x in [1, 2, 3,] {
+        let y : int = x
+    }
+    return n
+}
+evaluate f(1)

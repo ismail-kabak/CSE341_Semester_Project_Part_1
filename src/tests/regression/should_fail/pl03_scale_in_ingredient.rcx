@@ -1,0 +1,12 @@
+// Cat 8: scale(...) inside a recipe body (ingredient RHS) — must fail per spec §9
+// spec: "All three operations are call-site only. They cannot appear inside a recipe body."
+// Bug candidate: parser may ACCEPT this.
+recipe base() serves 4 {
+    ingredient flour : 200 g
+    step "mix" { combine(flour) }
+}
+recipe wrapper() serves 4 {
+    ingredient flour : scale(base(), by: 2)
+    step "x" { combine(flour) }
+}
+evaluate wrapper()

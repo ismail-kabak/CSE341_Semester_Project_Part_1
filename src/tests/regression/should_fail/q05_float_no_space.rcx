@@ -1,0 +1,7 @@
+// Cat 1: float literal with no space before unit
+// Expected: LexerError (decision #7)
+recipe test() serves 1 {
+    ingredient butter : 1.5kg
+    step "x" { combine(butter) }
+}
+evaluate test()
