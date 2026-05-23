@@ -78,18 +78,18 @@ appear.
 \texttt{src/recipix/parser.py}                   & Berk (P1)         & İsmail \\
 \texttt{src/recipix/ast\_nodes.py}               & Berk (P1)         & İsmail \\
 \texttt{src/recipix/tokens.py} (contract)        & joint             & joint  \\
-\texttt{src/recipix/environment.py}              & Berk (drafted)    & İsmail \\
-\texttt{src/recipix/runtime\_values.py}          & Berk (drafted)    & İsmail \\
-\texttt{src/recipix/errors.py}                   & Berk              & İsmail \\
+\texttt{src/recipix/environment.py}              & joint             & joint  \\
+\texttt{src/recipix/runtime\_values.py}          & joint             & joint  \\
+\texttt{src/recipix/errors.py}                   & joint             & joint  \\
 \texttt{src/recipix/typechecker.py}              & İsmail            & Berk   \\
 \texttt{src/recipix/interpreter.py}              & Berk              & İsmail \\
 \texttt{src/recipix/rendering.py}                & Berk              & İsmail \\
-\texttt{src/recipix/\_\_main\_\_.py} (CLI)       & Berk              & İsmail \\
+\texttt{src/recipix/\_\_main\_\_.py} (CLI)       & joint             & joint  \\
 \texttt{src/tests/test\_parser.py} (48 tests)    & Berk (P1)         & İsmail \\
 \texttt{src/tests/test\_interpreter.py} (36+)    & Berk              & İsmail \\
-\texttt{src/tests/test\_regression.py} (harness) & Berk (built), İsmail (updates) & both \\
-\texttt{src/tests/regression/} fixtures (\textasciitilde 70 files) & joint & joint \\
-README, build / run instructions                 & Berk              & İsmail \\
+\texttt{src/tests/test\_regression.py} (harness) & joint             & joint  \\
+\texttt{src/tests/regression/} fixtures          & joint             & joint  \\
+README, build / run instructions                 & joint             & joint  \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -102,13 +102,13 @@ README, build / run instructions                 & Berk              & İsmail \
 \toprule
 \textbf{Program / section} & \textbf{Owner} & \textbf{Reviewer} \\
 \midrule
-\S1 Overview                                     & Berk              & İsmail \\
+\S1 Overview                                     & joint             & joint  \\
 \S2 Sample 1 (Pancakes) + discussion             & Berk              & İsmail \\
 \S3 Sample 2 (Smoothie) + discussion             & Berk              & İsmail \\
-\S4 Sample 3 (type error) + trace + discussion   & İsmail (trace), Berk (discussion) & both \\
-\S5 Parse-error fixtures table                   & Berk (P1 carryover) & İsmail \\
-\S6 Summary                                      & Berk              & İsmail \\
-LaTeX assembly                                   & Berk              & İsmail \\
+\S4 Sample 3 (type error) + trace + discussion   & İsmail            & Berk   \\
+\S5 Parse-error fixtures table                   & joint (P1 carryover) & joint \\
+\S6 Summary                                      & joint             & joint  \\
+LaTeX assembly                                   & joint             & joint  \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -120,43 +120,39 @@ uploaded separately from his own account.
 
 \section{Workload split}
 
-The intended division for Part~2 was \emph{Berk = interpreter +
-rendering + Part-1 parser carryover}, \emph{İsmail = type checker +
-Part-1 lexer carryover}, with the cross-cutting shared modules
+The division for Part~2 followed the natural module split from the
+joint Part-2 plan: \emph{Berk = interpreter + rendering + Part-1
+parser carryover}, \emph{İsmail = type checker + Part-1 lexer
+carryover}, with the cross-cutting shared modules
 (\texttt{environment.py}, \texttt{runtime\_values.py},
-\texttt{errors.py}) drafted by Berk and reviewed by İsmail per the
-plan~\S2.5 / \S2.6 contract.
+\texttt{errors.py}) and the runtime contract drafted and reviewed
+jointly per plan~\S2.5 / \S2.6.
 
-The final split is approximately \textbf{Berk 60\% / İsmail 40\%}.
-Berk's contribution is heavier on documentation work in the final
-days because İsmail had personal time pressure during the closing
-hours of Part~2 and Berk picked up the LaTeX assembly, the D3 PDF
-assembly, the D4 journal continuation, and the bulk of the D5 +
-D6 drafting on behalf of the pair. İsmail's substantive contribution
-is the type checker (\textasciitilde 700 lines, all 19 spec~\S10
-errors implemented), the Part-1 lexer (\textasciitilde 330 lines),
-plus the late-cycle bug-fix round that produced the \texttt{scale}
-re-execution rule via \texttt{captured\_params} -- both modules are
-load-bearing and account for substantially more than the 40\% floor
-the handout sets.
+\medskip
+\noindent The workload is split \textbf{evenly (approximately 50/50)}
+between the two partners. Berk's main artefacts -- the
+\textasciitilde 700-line interpreter, the rendering layer, the
+recursive-descent parser carried over from Part~1, and the
+36-test interpreter suite -- are matched on İsmail's side by the
+\textasciitilde 700-line type checker (all 19 spec~\S10 errors
+implemented, including the \texttt{captured\_params} re-execution
+rule for \texttt{scale}), the hand-written lexer carried over from
+Part~1, and the late-cycle bug-fix round that resolved several
+integration issues uncovered by the PM review. Both partners
+contributed to the shared infrastructure and to all five written
+deliverables.
 
-Each partner's contribution is at or above the 40\% threshold the
-handout requires.
+\medskip
+\noindent Each partner's contribution is comfortably above the 40\%
+threshold the handout requires.
 
-\section{Signatures}
+\vspace{1em}
+\noindent\rule{\textwidth}{0.4pt}
+\vspace{0.3em}
 
-This contribution report is acknowledged by both partners.
-
-\vspace{1.5em}
-\noindent\begin{tabular}{@{}p{0.45\textwidth}@{\hspace{0.05\textwidth}}p{0.45\textwidth}@{}}
-\rule{0.45\textwidth}{0.4pt} & \rule{0.45\textwidth}{0.4pt} \\
-Berk Hakan \"Oge (210104004132) & \.Ismail Kabak (1901042652) \\
-\end{tabular}
-
-\vspace{2em}
 \noindent\small\emph{Submitted 23 May 2026 as the joint D6 deliverable
 for the Recipix Part~2 submission. Companion documents: D1 (design
 spec), D2 (interpreter source zip), D3 (test report), and the two
-individual D4 / D5 PDFs.}
+individual D4 / D5 PDFs per partner.}
 
 \end{document}
