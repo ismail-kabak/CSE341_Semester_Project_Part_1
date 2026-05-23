@@ -164,10 +164,14 @@ with one \texttt{normalize\_to\_base} function,
 both checker and interpreter, \texttt{interpreter.py} and
 \texttt{rendering.py} are Berk-owned and don't touch the type checker,
 \texttt{typechecker.py} is İsmail-owned and doesn't touch the
-interpreter. No Part-1 contract was modified. The minor code-quality
-finding from the professor review is one docstring drift in
-\texttt{runtime\_values.py:137} (claims lazy step evaluation;
-implementation is eager) which is a 5-line fix in the final pass.
+interpreter. No Part-1 contract was modified. One acknowledged
+docstring drift survives into the submission: \texttt{runtime\_values.py:137}
+describes the \texttt{RtRecipe.steps} field as if it were used for
+lazy step rendering, but the interpreter eagerly evaluates step
+bodies at instantiation and \texttt{scale} then re-executes them under
+the rebound \texttt{servings}. I left the docstring as-is rather than
+risk a late-cycle code change that would have rippled through D2/D3
+in the final hours; it is filed as a v2 polish item.
 
 \paragraph{Exam Performance (estimate) -- A$-$.} I can defend the
 interpreter mechanics line-by-line: how \texttt{scale} re-executes
