@@ -1,8 +1,34 @@
+# Python build artifacts
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .pytest_cache/
 *.egg-info/
 dist/
 build/
 .env
+
+# IDE / tool config (personal, not project)
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# D4 supplementary materials — uploaded to Teams alongside the D4 PDF,
+# not committed to the repo (they bloat history and contain personal
+# Claude Code session traces).
+session*.jsonl
+web_ses.txt
+
+# E1/E2/E3 working drafts — the finalized content lives inside
+# docs/210104004132_D4_P2.md; the raw drafts are not part of the
+# submission and not tracked.
+E1_result.md
+E2_result.md
+E3_result.md

@@ -36,7 +36,7 @@ from typing import Optional
 from . import ast_nodes as ast
 from .ast_nodes import Program
 from .environment import Environment
-from .errors import TypeCheckError, RedeclarationError, ShadowingError
+from .errors import TypeCheckError, ShadowingError
 from .runtime_values import UNIT_TABLE
 
 # ---------------------------------------------------------------------------
@@ -105,16 +105,15 @@ class TypeChecker:
 
     def _declare(self, name: str, type_str: str, line: int, col: int = 0) -> None:
         """declare_check + define, wrapping both exceptions as TypeCheckError."""
+        if self.env.has_local(name):
+            raise TypeCheckError(line, col,
+                f"name {name!r} is already declared in this scope", error_code=5)
         try:
             self.env.declare_check(name)
         except ShadowingError:
             raise TypeCheckError(line, col,
                 f"name {name!r} shadows an existing binding", error_code=6)
-        try:
-            self.env.define(name, type_str)
-        except RedeclarationError:
-            raise TypeCheckError(line, col,
-                f"name {name!r} is already declared in this scope", error_code=5)
+        self.env.define(name, type_str)
 
     def _resolve_type_name(self, type_name: str, line: int) -> str:
         if type_name not in VALID_TYPES:
@@ -223,11 +222,13 @@ class TypeChecker:
                     raise TypeCheckError(item.line, 0,
                         f"name {item.name!r} is already declared", error_code=5)
                 self.recipes[item.name] = item
+                self.globals.define(item.name, "RecipeDecl")
             elif isinstance(item, ast.FunctionDecl):
                 if item.name in self.functions or item.name in self.recipes:
                     raise TypeCheckError(item.line, 0,
                         f"name {item.name!r} is already declared", error_code=5)
                 self.functions[item.name] = item
+                self.globals.define(item.name, "FunctionDecl")
 
         # Pass 2: rewrite all AmbiguousCall nodes in the whole tree
         self._rewrite_ambiguous(node)
@@ -459,7 +460,12 @@ class TypeChecker:
         return self._annotate(node, "bool")
 
     def _check_StringLit(self, node: ast.StringLit) -> str:
-        return self._annotate(node, "str")
+        raise TypeCheckError(
+            node.line, 0,
+            "string literal in expression position: per spec §1, string is not "
+            "a type and string literals are only allowed as step descriptions",
+            error_code=21,
+        )
 
     def _check_QuantityLit(self, node: ast.QuantityLit) -> str:
         if node.unit == "pinch":
@@ -472,7 +478,13 @@ class TypeChecker:
 
     def _check_ListLit(self, node: ast.ListLit) -> str:
         if not node.elements:
-            return self._annotate(node, "List<?>")
+            raise TypeCheckError(
+                node.line, 0,
+                "empty list literal: Recipix v1 has no list type annotation syntax, "
+                "so the element type of an empty list cannot be inferred; "
+                "write a list with at least one element",
+                error_code=20,
+            )
         types = [self._check_expr(e) for e in node.elements]
         first = types[0]
         first_dim = self._dimension_of(first)
@@ -580,6 +592,11 @@ class TypeChecker:
                 raise TypeCheckError(node.line, 0,
                     f"cannot multiply two quantities ({ld} * {rd})",
                     error_code=1)
+            scalar_t = node.right.inferred_type if ld is not None else node.left.inferred_type
+            if scalar_t not in SCALAR_TYPES:
+                raise TypeCheckError(node.line, 0,
+                    f"quantity * requires an int or float scalar, got {scalar_t!r}",
+                    error_code=1)
             dim = ld if ld is not None else rd
             return self._annotate(node, dim)
 
@@ -591,6 +608,11 @@ class TypeChecker:
                         error_code=1)
                 return self._annotate(node, "float")
             if ld is not None:
+                scalar_t = node.right.inferred_type
+                if scalar_t not in SCALAR_TYPES:
+                    raise TypeCheckError(node.line, 0,
+                        f"quantity / requires an int or float scalar, got {scalar_t!r}",
+                        error_code=1)
                 return self._annotate(node, ld)
 
         raise TypeCheckError(node.line, 0,
@@ -728,10 +750,10 @@ class TypeChecker:
         orig_dim = orig_t[len("Ingredient:"):]
         repl_dim = repl_t[len("Ingredient:"):]
 
-        # Error #16: Pinch ↔ Quantity
-        if (orig_dim == "Pinch") != (repl_dim == "Pinch"):
+        # Error #16: Pinch in either position — ratio doesn't apply to Pinch
+        if orig_dim == "Pinch" or repl_dim == "Pinch":
             raise TypeCheckError(node.line, 0,
-                "cannot substitute between Pinch and a Quantity",
+                "cannot apply substitute-by-ratio to a Pinch ingredient",
                 error_code=16)
         # Error #1: dimension mismatch
         if orig_dim != repl_dim:
@@ -747,4 +769,4 @@ class TypeChecker:
         return self._annotate(node, recipe_t)
 
 
-__all__ = ["check", "TypeChecker", "TypeCheckError"]
+__all__ = ["check", "TypeChecker"]
