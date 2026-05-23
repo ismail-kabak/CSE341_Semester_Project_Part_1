@@ -669,12 +669,15 @@ recommended order, the runtime-error checklist (5 errors from spec
 
 \field{Accepted.} The agent produced commits \texttt{51c1b03}
 (interpreter + rendering implementation, 619 lines) and \texttt{fac696a}
-(36-test suite). Tools used: $\sim$40 Edit + Write, $\sim$30 Read,
-$\sim$20 Bash for verification. The eager-step-evaluation strategy was
-the one locked at the time in plan~\S2.2; the agent followed it.
-\texttt{AmbiguousCall} dispatch raises \texttt{RuntimeRecipixError}
-unconditionally -- the loud-fail behavior asked for; integration tests
-use a separate helper to simulate the typechecker's resolution.
+(36-test suite). Tools used (counted from the JSONL): 9 Edit/Write,
+15 Read, 25 Bash for verification, plus 21 \texttt{TaskCreate} /
+\texttt{TaskUpdate} calls -- the agent self-tracked its 14-step task
+list throughout and ticked items off as it implemented them. The
+eager-step-evaluation strategy was the one locked at the time in
+plan~\S2.2; the agent followed it. \texttt{AmbiguousCall} dispatch
+raises \texttt{RuntimeRecipixError} unconditionally -- the loud-fail
+behavior asked for; integration tests use a separate helper to simulate
+the typechecker's resolution.
 
 \field{Rejected / modified.} Three findings from a follow-up PM review
 (entry~21) led to commit \texttt{d5c539c}: the original AmbiguousCall
@@ -685,12 +688,16 @@ in scope), and the test suite had gaps on runtime error~\#4
 three were closed in the follow-up commit; the agent self-corrected on
 all three when given the gap report.
 
-\field{Errors caught.} The PM review (entry~21) caught all three gaps
-before any of them shipped to a passing-on-the-surface-but-broken-in-integration
-state. The agent itself self-caught only one error during the build:
-an early version of the unit-conversion table had a wrong conversion
-factor; it noticed during the test pass for sample~1 and corrected.
-Test count: 36, all passing on first full run.
+\field{Errors caught.} The PM review (entry~21) caught all three
+substantive gaps before any of them shipped to a
+passing-on-the-surface-but-broken-in-integration state. The agent
+itself ran clean -- the 36 interpreter tests it wrote were green on
+the first full run, and the agent's own report acknowledged no
+self-caught bugs during the build. Test-suite count progressed:
+111 tests pre-build (the existing parser + regression baseline)
+$\to$~147 after \texttt{51c1b03}+\texttt{fac696a} (+36 interpreter
+tests) $\to$~152 after the PM-fix follow-up \texttt{d5c539c}
+(+5 tests covering gaps F, G, I).
 
 \field{Reflection.} The pattern I keep seeing with autonomous developer
 agents in Claude Code is that when the contract is locked tightly
@@ -786,10 +793,12 @@ explicitly out of scope at this point), required output structure
 with target answers and exposure ratings, triage list), tone
 (skeptical, ``find what the grader will find'').
 
-\field{Accepted.} Agent produced a structured $\sim$1500-word review
+\field{Accepted.} Agent produced a structured $\sim$2900-word review
 with: tentative letter grades per rubric dimension (B+ to A$-$ across
-the six), 14 findings clustered by dimension, 5+5 predicted exam
-questions with target answers and exposure ratings, and a triage list.
+the six), 14 findings clustered by dimension with file:line
+citations, 5+5 predicted exam questions with target answers and
+exposure ratings, and a triage list of fix-tonight / defer / ignore
+items.
 
 \field{Rejected / modified.} Nothing rejected substantively; every
 finding I cross-checked against the actual code matched the agent's
@@ -886,10 +895,11 @@ the human's job to integrate.}
 \section{Session 14 -- Tester Agent: Verification}
 
 Source: \texttt{session14\_tester\_2026-05-22\_to\_2026-05-23.jsonl}.
-The verification prompt was run twice against the same session -- once
-on 2026-05-22 to audit the post-handoff integration state, and again
-on 2026-05-23 to audit the finalized submission state after the
-bug-fix round and cleanup. Entry~24 documents the May~23 turn, which
+The same session ran two verification turns: a post-handoff
+integration audit on 2026-05-22 (its own prompt scoped to the just-
+landed typechecker handoff), and a final pre-submission audit on
+2026-05-23 (a fresh prompt scoped to ``verify the submission
+against its own claims''). Entry~24 documents the May~23 turn, which
 returned the SHIP verdict.
 
 \entryheader{24 of 24}{2026-05-23}{Functional verification (autonomous agent, second turn)}{Claude Opus 4.7}
