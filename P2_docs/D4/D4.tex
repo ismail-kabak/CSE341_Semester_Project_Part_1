@@ -122,15 +122,20 @@ brainstorming + PM-in-Code + autonomous developer/tester agents).
 First, a single Claude.ai web planning chat that turned into the
 Part~2 roadmap and the \texttt{part2\_plan.md} contract with İsmail.
 Second, three discrete Claude.ai web sessions running the mandatory
-experiments E1 (catch-up -- see entry~16 note), E2, and E3 each in a
+experiments E1 (catch-up -- see entry~17 note), E2, and E3 each in a
 fresh model with no prior context. Third, three Claude Code sessions
 covering the Part~2 build: a developer agent that produced the
 interpreter + 36-test suite, a PM agent that reviewed those commits
 and closed three gaps, and a professor agent that ran a Pass-1
-rubric-graded review of the in-scope artifacts. Finally, two
-final-pre-submission sessions on May~22--23: a continuation of the
-professor session (final rubric review) and a fresh tester session
-(final functional verification).
+rubric-graded review of the in-scope artifacts. The professor session
+was extended on May~22--23 with a second turn (final rubric review of
+the finalized state -- same session UUID, two entries cite it), and
+a fresh tester session was run on May~23 for the final functional
+verification before submission.
+
+In total Part~2 produced \textbf{8 sessions} (sessions 7--14 in the
+table below) and \textbf{9 entries} (entries 16--24), since the
+professor session is cited by two entries.
 
 \subsection*{Sessions covered in this continuation}
 
@@ -971,16 +976,29 @@ a frozen tree where the only remaining action is \emph{click upload}.
 
 \section*{Cumulative summary}
 
-Across Part~1 (15 entries, May~6--8) and Part~2 (this continuation,
-9 entries, May~20--23), the journal documents \textbf{24 substantive
-AI sessions} covering: 4 Claude.ai web sessions (2~brainstorming,
-1~planning, 3~E-experiments), 4 Claude Code PM sessions (2~in Part~1,
-2~in Part~2), 4 Claude Code autonomous-agent runs (developer Part~1,
-developer + PM + professor + tester Part~2). Mandatory experiments
-E1~(catch-up -- see entry~17 note), E2, and E3 are all documented
-with shareable claude.ai/share URLs at sessions 8, 9, 10. Four
-Claude Code transcripts are uploaded as JSONL files alongside this
-PDF for sessions 11, 12, 13, 14.
+Across Part~1 (15 entries from 6 sessions, May~6--8) and Part~2 (this
+continuation, 9 entries from 8 sessions, May~20--23), the journal
+documents \textbf{14 substantive AI sessions producing 24 entries}.
+The breakdown:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{6 Claude.ai web sessions} -- 2 brainstorming
+        (Part~1 sessions 1 and 2), 1 Part~2 planning (session 7),
+        3 E-experiments E1/E2/E3 (sessions 8, 9, 10).
+  \item \textbf{2 Claude Code multi-turn PM threads} -- both in
+        Part~1 (sessions 3 and 4 -- Sonnet 4.6 and Opus 4.7
+        respectively, multi-turn user-driven orchestration).
+  \item \textbf{6 Claude Code autonomous-agent runs} -- Part~1
+        contributes 2 (tester agent session 5 + developer agent
+        session 6 across two rounds); Part~2 contributes 4
+        (developer session 11, PM session 12, professor session 13
+        across two passes, tester session 14).
+\end{itemize}
+
+Mandatory experiments E1 (catch-up -- see entry~17 note), E2, and
+E3 are all documented with shareable claude.ai/share URLs at
+sessions~8, 9, 10. Four Claude Code transcripts are uploaded as
+JSONL files alongside this PDF for sessions~11, 12, 13, 14.
 
 The journal contains \textbf{seven documented cases} where the AI was
 wrong, suboptimal, or made claims I had to verify against the spec,
