@@ -3,13 +3,15 @@
 This folder contains the LaTeX sources for the two written deliverables
 of the Recipix Part 2 submission:
 
-| Folder | Deliverable | Final PDF name |
-|---|---|---|
-| `D1/` | D1 — Design Specification (Part 2) | `1901042652-210104004132_D1_P2.pdf` |
-| `D3/` | D3 — Test Report (Part 2) | `1901042652-210104004132_D3_P2.pdf` |
+| Folder | Deliverable | Final PDF name | Uploaded by |
+|---|---|---|---|
+| `D1/` | D1 — Design Specification (Part 2)         | `1901042652-210104004132_D1_P2.pdf` | one partner (joint) |
+| `D3/` | D3 — Test Report (Part 2)                  | `1901042652-210104004132_D3_P2.pdf` | one partner (joint) |
+| `D4/` | D4 — AI Usage Journal (Part 2 continuation, Berk) | `210104004132_D4_P2.pdf`        | Berk individually   |
 
-Both PDFs are joint pair deliverables — only one partner uploads each
-to Microsoft Teams.
+D1 and D3 are joint pair deliverables. D4 is per-student — only Berk's
+journal is in this folder (İsmail submits his own from his own
+account).
 
 ## Build instructions
 
@@ -28,16 +30,18 @@ pdflatex D1.tex   # second pass for cross-references / TOC if added
 cd ../D3
 pdflatex D3.tex
 pdflatex D3.tex
+
+cd ../D4
+pdflatex D4.tex
+pdflatex D4.tex
 ```
 
 Or use `latexmk` for automatic pass management:
 
 ```bash
-cd P2_docs/D1
-latexmk -pdf D1.tex
-
-cd ../D3
-latexmk -pdf D3.tex
+cd P2_docs/D1 && latexmk -pdf D1.tex
+cd ../D3     && latexmk -pdf D3.tex
+cd ../D4     && latexmk -pdf D4.tex
 ```
 
 After the build, rename the output PDFs to the submission filenames

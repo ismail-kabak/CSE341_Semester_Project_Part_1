@@ -1,0 +1,1032 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{tcolorbox}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black,
+    citecolor=black,
+}
+
+\definecolor{codebg}{RGB}{248,248,242}
+\definecolor{codecomment}{RGB}{106,135,89}
+\definecolor{codekeyword}{RGB}{0,102,153}
+\definecolor{codestring}{RGB}{170,55,55}
+\definecolor{ackcolor}{RGB}{170,90,30}
+
+\lstdefinestyle{recipix}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekeyword}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestring},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.4em,
+    belowskip=0.4em,
+    morekeywords={recipe,function,ingredient,step,let,if,else,
+        repeat,times,foreach,in,at,for,evaluate,scale,substitute,
+        serves,with,by,ratio,return,quantity\_of,true,false,
+        int,float,bool,Mass,Volume,Count,Temperature,Duration,Pinch,
+        combine,mix,pour,melt,whisk,blend,bake,flip,add,sprinkle,drizzle,knead},
+    morecomment=[l]{//},
+    morestring=[b]",
+}
+
+\lstdefinestyle{output}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.4em,
+    belowskip=0.4em,
+}
+
+\lstdefinestyle{py}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{codekeyword}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestring},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.4em,
+    belowskip=0.4em,
+    language=Python,
+}
+
+\lstset{style=recipix}
+
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{}{0em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{CSE 341 -- Recipix v4.1}
+\fancyhead[R]{D4 (Part 2 continuation)}
+\fancyfoot[C]{\thepage}
+
+\newcommand{\entryheader}[4]{%
+    \par\vspace{1em}\noindent\textbf{Entry \#{#1}} \textbullet{} \textbf{Date} #2 \textbullet{} \textbf{Phase} #3 \textbullet{} \textbf{AI tool} #4 \par\vspace{0.3em}\noindent\rule{\textwidth}{0.4pt}\par\vspace{0.3em}}
+
+\newcommand{\sessionheader}[1]{%
+    \par\vspace{1.5em}\noindent\textbf{Source session: }\texttt{#1}\par\vspace{0.5em}}
+
+\newcommand{\field}[1]{\noindent\textbf{#1}}
+
+\title{\textbf{D4 -- AI Usage Journal (Part 2 continuation)} \\
+       \large Recipix v4.1 -- CSE 341 Semester Project}
+\author{Berk Hakan \"Oge (210104004132)}
+\date{23 May 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+
+\section*{Continuation note}
+
+This document continues the AI Usage Journal I submitted with Part~1
+(\texttt{210104004132\_D4\_P1.pdf}, 15 entries across 6 sessions, dated
+May 6--8 2026). It documents the AI sessions I used during Part~2 work,
+dated May~20--23 2026. Entry numbering continues from the Part~1
+journal: this document contains entries \textbf{16 through 24}.
+
+Part~2 added two AI workflows on top of the Part-1 pattern (web
+brainstorming + PM-in-Code + autonomous developer/tester agents).
+First, a single Claude.ai web planning chat that turned into the
+Part~2 roadmap and the \texttt{part2\_plan.md} contract with İsmail.
+Second, three discrete Claude.ai web sessions running the mandatory
+experiments E1 (catch-up -- see entry~16 note), E2, and E3 each in a
+fresh model with no prior context. Third, three Claude Code sessions
+covering the Part~2 build: a developer agent that produced the
+interpreter + 36-test suite, a PM agent that reviewed those commits
+and closed three gaps, and a professor agent that ran a Pass-1
+rubric-graded review of the in-scope artifacts. Finally, two
+final-pre-submission sessions on May~22--23: a continuation of the
+professor session (final rubric review) and a fresh tester session
+(final functional verification).
+
+\subsection*{Sessions covered in this continuation}
+
+\begin{center}
+\small
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{\#} & \textbf{Session} & \textbf{Tool / Model} & \textbf{Date} \\
+\midrule
+7  & Web Planning B -- Part 2 Roadmap and Pair-Split            & Claude.ai web (Sonnet)                        & 2026-05-20 \\
+8  & Web Experiment E1 -- EBNF generation (late catch-up)       & Claude.ai web (Opus 4.7, thinking on)          & 2026-05-21 \\
+9  & Web Experiment E2 -- Type equivalence                      & Claude.ai web (Opus 4.7, thinking on)          & 2026-05-21 \\
+10 & Web Experiment E3 -- AI implements \texttt{\_check\_ActionStmt} & Claude.ai web (Opus 4.7, thinking on)      & 2026-05-21 \\
+11 & Developer Agent -- Interpreter + Rendering build           & Claude Code (Sonnet 4.6, autonomous)          & 2026-05-21 \\
+12 & PM Agent -- Interpreter Commits Review                     & Claude Code (Opus 4.7)                        & 2026-05-21 \\
+13 & Professor Agent -- Pass-1 + Final Rubric Review            & Claude Code (Opus 4.7)                        & 2026-05-21 / 2026-05-23 \\
+14 & Tester Agent -- Final Pre-Submission Verification          & Claude Code (Opus 4.7)                        & 2026-05-23 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The three Claude Code transcripts are submitted alongside this PDF as
+JSONL files:
+
+\begin{itemize}[leftmargin=*,itemsep=0pt]
+\item \texttt{session11\_developer\_interpreter\_2026-05-21.jsonl}
+\item \texttt{session12\_pm\_interpreter\_review\_2026-05-21.jsonl}
+\item \texttt{session13\_professor\_2026-05-21\_to\_2026-05-23.jsonl}
+\item \texttt{session14\_tester\_final\_verification\_2026-05-23.jsonl}
+\end{itemize}
+
+The four web sessions have shareable URLs cited inline within each
+entry.
+
+
+\section{Session 7 -- Web Planning B: Part 2 Roadmap (Claude.ai Web)}
+
+Source session: full transcript saved to repo as \texttt{web\_ses.txt}
+at submission time. Single Claude.ai web chat used to plan the Part~2
+split with my partner, generate the contract proposal doc to send to
+İsmail, and surface the design decisions that needed locking before
+either of us wrote new code. Four substantive turns, treated as one
+entry because they form one continuous planning arc.
+
+\entryheader{16 of 24}{2026-05-20}{Project planning / pair split}{Claude.ai web (Sonnet)}
+
+\field{Goal.} Take Part 1's submitted state into a Part 2 plan İsmail
+and I could both sign off on before either of us started writing code.
+Specifically: pick a pair split, lock the integration contracts that
+would let us work in parallel, and produce a markdown doc I could
+send to İsmail rather than walking him through chat scrollback.
+
+\field{Prompt.} Started with \emph{"We are building our own programming
+language. Here the github repo for it. We have completed Part1 of the
+project. You can read the project handout.pdf file for details about
+the project. Read trough the files and inspect the work done overall
+for the part1. After you are done with learning the project we will
+start planning on what to do next for part2."} Then three follow-up
+turns: ask for split options, pick Option~A, ask for the markdown doc
+to share with İsmail.
+
+\field{Response (key part).} The model pulled the spec, parser source,
+AST, error module, lexer contract, fixtures, my D5, İsmail's D5, the
+D6, and the handout. Three things it produced were load-bearing: (1)~a
+clean read of where Part~1 actually shipped, including the three
+deferred items I'd flagged in my D5 (\texttt{AmbiguousCall} resolution,
+\texttt{evaluate}-only constraint, single-return rule) and which Part~2
+phase they each landed in. (2)~Three pair-split options, each with a
+Sebesta-chapter argument; recommended Option~A (Berk = interpreter,
+İsmail = type checker) was justified by İsmail's stated D5 intention
+and by my ownership of the AST shapes. (3)~A full Phase-0 contract list
+(TypedAST contract, runtime value dataclasses, action-verb signature
+table, quantity-normalization rule, environment-chain shape, file
+layout, sample-output agreement) plus a draft \texttt{part2\_plan.md}
+written in my voice.
+
+\field{Accepted.} The Option-A pair split; the in-place TypedAST
+annotation contract; the runtime value dataclasses as drafted
+(\texttt{RtQuantity}, \texttt{RtPinch}, \texttt{RtIngredient},
+\texttt{RtRecipe}, \texttt{RtList}); the quantity-normalization rule
+(type checker tracks dimension, interpreter normalizes to base units
+at \texttt{QuantityLit} evaluation); the shared \texttt{environment.py}
+design. The first draft of \texttt{part2\_plan.md} became the working
+contract; subsequent revisions (Rev~2, Rev~3) were edits in a separate
+Claude Code session, but the bones came from here.
+
+\field{Rejected / modified.} The 12-row per-verb action-verb signature
+table was the model's straw proposal; I collapsed it to three signature
+classes (Heterogeneous, Homogeneous, Nullary) in
+\texttt{part2\_plan.md}~\S2.3 because the per-verb form was unjustified
+branch explosion in the checker. The model accepted the collapse
+without argument when challenged later -- see Session~10 / Entry~19.
+
+\field{Errors caught.} One soft error: the model's first read called
+the action-verb signature table ``small but exam-bait'' and proposed
+twelve rows. The right answer was three. I caught it by reading the
+\S2.3 list against the spec's decision~\#29 (``action verbs are an
+exception to the homogeneous-list rule'') -- twelve per-verb
+signatures don't honor a single-decision carve-out; three signature
+classes do. The model's later proposal had the same blind spot. This
+is the failure mode I now look for first when prompting any AI on
+design decisions: it expands tables in the direction of ``more rules
+cover more cases'' rather than collapsing them in the direction of
+``fewer rules cover the same cases at lower exam and maintenance
+cost.''
+
+\field{Reflection.} This session's contribution was that it forced me
+to articulate the Part~2 split out loud before talking to İsmail. The
+chapter mapping (Ch.~6 = İsmail, Ch.~7 = Berk) is the line I rehearsed
+for the meeting. The runtime contract doc is what made the parallel
+build possible the next day. The model was best at
+\emph{briefing-from-spec} (it correctly identified the three deferred
+items from my Part~1 D5 without me prompting), worst at design
+rationale that has to be in my own voice -- every D1~[P2] paragraph
+it offered, I rewrote. Lesson: I use the AI to surface decisions I
+should make, never to make them.
+
+
+\section{Session 8 -- Web Experiment E1: EBNF Generation}
+
+\begin{tcolorbox}[colback=ackcolor!8,colframe=ackcolor!50,boxrule=0.5pt]
+\small\textbf{Late-execution acknowledgment.} Experiment E1 was
+required for the Part~1 D4 journal but was omitted from my
+submission by oversight. I noticed the gap on 2026-05-21 during a
+Part~2 D4 prep pass and am running E1 here, honestly dated, as a
+catch-up entry filed with my Part~2 D4 submission. This entry does
+\textbf{not} retroactively satisfy the Part~1 requirement; it
+documents the experiment for completeness and is noted in my D5
+retrospective. The model used (Claude Opus~4.7) postdates Part~1's
+working window, which is another reason to be explicit about
+dating rather than smuggle it into earlier dates.
+\end{tcolorbox}
+
+\sessionheader{claude.ai/share/6d67cab6-006e-414f-b05c-ada5fa5b0d22}
+
+Two-turn session: cold EBNF generation, then comparison against the
+locked spec.
+
+\entryheader{17 of 24}{2026-05-21}{Design / EBNF retrospective}{Claude Opus 4.7 (extended thinking: on)}
+
+\field{Goal.} Generate a first-pass EBNF grammar for Recipix from a
+short prose description and compare it against my locked spec
+(v4.1, \S13), so I can see which language-specific decisions an AI
+derives on its own and which it silently smooths over into PL-textbook
+defaults.
+
+\field{Prompt.} Verbatim, one paragraph -- no productions or repository
+content leaked into turn~1; only the one-paragraph description of the
+language: ``Recipix is a small DSL for writing parameterized recipes
+that can be scaled and have ingredients substituted. The primitive
+types are \texttt{int}, \texttt{float}, \texttt{bool}, five quantity
+types (\texttt{Mass}, \texttt{Volume}, \texttt{Count},
+\texttt{Temperature}, \texttt{Duration}), and a separate \texttt{Pinch}
+type$\dots$'' -- continues through structured types, user-visible
+constructs, the three call-site operators, quantity literals, the
+unary \texttt{quantity\_of} operator, and the no-chained-comparison
+constraint. Ends with ``Please give me an EBNF grammar.''
+
+\field{Response (key part, turn~1).} AI's first-pass EBNF, generated
+cold. Highlights:
+
+\begin{lstlisting}
+Expression     ::= LogicalOr
+LogicalOr      ::= LogicalAnd ( "or"  LogicalAnd )*
+LogicalAnd     ::= Comparison ( "and" Comparison )*
+Comparison     ::= Additive ( CompOp Additive )?       (* non-associative *)
+CompOp         ::= "<" | "<=" | ">" | ">=" | "==" | "!="
+Additive       ::= Multiplicative ( ( "+" | "-" ) Multiplicative )*
+Multiplicative ::= Unary ( ( "*" | "/" | "%" ) Unary )*
+Unary          ::= ( "-" | "not" | "quantity_of" | "evaluate" ) Unary
+                 | Postfix
+SubstituteExpr ::= "substitute" "(" Expression "," Expression ","
+                                   "with"  ":" Expression ","
+                                   "ratio" ":" Expression ")"
+QuantityLit    ::= ( INT_LIT | FLOAT_LIT ) Unit
+\end{lstlisting}
+
+\noindent Commentary from the AI: quantity literals as \emph{two tokens}
+``joined in the parser''; chained comparison ``forbidden by making
+Comparison non-associative''; \texttt{if}/\texttt{else} ``no
+dangling-else problem because bodies are braced''; \texttt{quantity\_of}
+``sits at the unary layer''. The AI volunteered uncertainty about
+\texttt{Count} (``I left it without a dedicated unit on the assumption
+it's promoted from INT\_LIT by context'') and flagged it as the most
+likely divergence.
+
+\field{Response (key part, turn~2).} After giving the AI the GitHub
+link to \texttt{docs/recipix\_v4\_1\_spec.md}, its self-assessment:
+\emph{``I got the high-stakes structural calls right -- two-token
+quantities, non-associative comparison, mandatory if/else braces,
+quantity\_of at the unary level -- but missed the substitute
+bare-identifier restriction, and several smaller surface details.''}
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.32\textwidth}p{0.30\textwidth}p{0.30\textwidth}@{}}
+\toprule
+\textbf{Decision} & \textbf{AI cold} & \textbf{Locked spec} \\
+\midrule
+\#7 quantity literals as two tokens & two tokens, parser-joined & match (AI missed \texttt{count}, mg, used wrong unit set) \\
+\#17 comparison non-associative & non-associative & match, same reasoning \\
+\#20 mandatory braces on if/else & mandatory & match \\
+\#34 \texttt{quantity\_of} at unary & unary level, parens-free operand & ``right floor, wrong storefront'' -- match on placement \\
+\#35 substitute slots as IDENT & all four slots \texttt{Expression} & \textbf{miss} -- the one big design call the AI invented from prose was wrong \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The AI's framing of the substitute miss: \emph{``Your AST node carries
+original\_name: str and replacement\_name: str, not Expr -- there is no
+AST shape that pretends the slot could be computed. That's the cleanest
+design lesson in the whole comparison -- grammar-as-documentation-of-semantics,
+not just grammar-as-parser-spec.''}
+
+\field{Accepted.} The four high-stakes calls match the locked grammar's
+intent, and the AI's reasoning on each lines up with the rationale I
+locked into the spec. The precedence ladder shape (seven levels in the
+right top-down order) and the program skeleton both match. Even the
+``right floor, wrong storefront'' miss on \texttt{quantity\_of} proves
+the type-system reasoning was sound; only the surface syntax differed.
+
+\field{Rejected / modified.} The substitute-slot miss plus a cluster of
+over-permits where the spec locks down: optional \texttt{let} type
+annotation, \texttt{List<T>} as a user-writable type, top-level
+\texttt{IngredientDecl}, step body absent, no closed action-verb set,
+function bodies with no single-return restriction, postfix indexing,
+keyword logical operators (\texttt{and}/\texttt{or}/\texttt{not}
+instead of \texttt{\&\&}/\texttt{||}/\texttt{!}), wrong unit set.
+
+\field{Errors caught.} (1)~\textbf{Substitute slots as \texttt{Expression}
+instead of \texttt{IDENT}} -- under the AI grammar,
+\texttt{substitute(r, flour + salt, with: milk, ratio: 1.0)} parses;
+under the spec it's a parse error. (2)~\textbf{Cluster of over-permits}
+where the spec locks down -- predictable shape of ``derive a grammar
+from prose without the locked decisions in view.'' (3)~\textbf{Unit set
+drift} -- AI invented units (\texttt{°F}, \texttt{s}, \texttt{h}) and
+missed locked ones (\texttt{count}, \texttt{mg}).
+
+\field{Reflection.} The thing that surprised me here is how much Opus
+got right cold with thinking on. Four of five big design calls came
+back match. What didn't change is the \emph{kind} of thing it still
+misses. Decision~\#28 (``ingredient identity is the binding'') drives
+decision~\#35 (substitute slots are bare identifiers), and there's no
+way to derive \#35 from prose unless you've already had the \#28
+conversation. The over-permits -- \texttt{List<T>} annotations as
+user-writable, top-level ingredients, optional \texttt{let} type,
+indexing, multi-return function bodies -- are the same shape: the AI
+admits whatever generic PL languages admit; the spec restricts what
+Recipix specifically restricts. \emph{Lesson:} I can't trust a
+``generate a grammar from a paragraph'' pass to surface decisions
+whose rationale lives outside that paragraph. I have to drive the AI
+with the rationale already in hand. That's also why I'm filing this
+entry on its real date and not backdated -- the value of the
+experiment is in the comparison, and the comparison only holds if
+the dates and tool name are honest.
+
+
+\section{Session 9 -- Web Experiment E2: Type Equivalence}
+
+\sessionheader{claude.ai/share/dd9a44cf-584d-4194-9312-2b512752f90d}
+
+Two-turn session: cold equivalence recommendation, then comparison
+against the locked spec.
+
+\entryheader{18 of 24}{2026-05-21}{Type checker / Design}{Claude Opus 4.7 (extended thinking: on)}
+
+\field{Goal.} Test whether a fresh AI session, given only a
+one-paragraph description of Recipix and its structured types, can
+derive the type-equivalence rule I actually settled on in v4.1 -- or
+whether it gives a textbook answer that misses the domain reason for
+the split.
+
+\field{Prompt.} Verbatim, Recipix domain framing plus the four
+structured types (\texttt{Ingredient}, \texttt{Recipe}, \texttt{Step},
+\texttt{List<T>}), asking for a per-type name-vs-structural
+recommendation plus a small example program that depends on the rule.
+
+\field{Response (key part, turn~1, AI's first-pass recommendation):}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lp{0.20\textwidth}p{0.55\textwidth}@{}}
+\toprule
+\textbf{Type} & \textbf{AI cold} & \textbf{AI's justification (paraphrased)} \\
+\midrule
+\textbf{Ingredient} & name & ``Domain noun... generic fields would collapse with hypothetical Cost/Allergen records.'' \\
+\textbf{Recipe} & name & ``Top-level entity; accidental equivalence at the top of the type lattice is a worse failure mode than at the leaves.'' \\
+\textbf{Step} & name & ``Optional fields make decisive -- under structural rules you'd get four distinct shapes per optional-field combination.'' \\
+\textbf{List\textless T\textgreater} & structural in parameter, nominal in constructor & ``Standard treatment for parametric types -- ML/Haskell/Java generics converge here.'' \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The AI offered a brownies-recipe example using pseudo-syntax
+(\texttt{Step("desc", actions: [...])} constructor calls inside a
+\texttt{steps: [...]} list literal) claiming the three Steps in the
+brownies recipe (one with neither modifier, one with both, one with
+only \texttt{duration}) would have ``three distinct structural
+shapes'' and fail to unify in a \texttt{List<Step>} under structural
+equivalence.
+
+\field{Response (key part, turn~2, comparison against the locked spec):}
+Self-assessment:
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Recipe -- match.} Same call, same reasoning.
+  \item \textbf{List\textless T\textgreater\ -- match.} Same conceptual
+        move, phrased differently.
+  \item \textbf{Ingredient -- divergence, with self-correction.}
+        \emph{``My reasoning was forward-looking: avoid silent
+        collisions with hypothetical Cost \{name, quantity\} or
+        Allergen \{name, quantity\} types in some v2. That argument
+        falls apart against your actual v1, because there is no
+        user-defined record syntax -- Ingredient is the only \{name,
+        quantity\} record the type system will ever see, and \S1 makes
+        the type-name set closed. So my choice was buying safety
+        against a threat that can't exist in the language as specified.
+        Pick the more permissive rule when over-restriction has no
+        upside.''}
+  \item \textbf{Step -- divergence on reasoning.} The AI realized its
+        argument was based on the strict-Sebesta reading of structural
+        equivalence (each \texttt{?}-field present-or-absent creates a
+        distinct shape) -- \emph{not} how the spec applies the rule.
+        The spec treats optional fields as part of the \emph{single}
+        declared shape.
+\end{enumerate}
+
+The AI's one-line summary: \emph{``I got Ingredient genuinely wrong
+(defensible reasoning, wrong call for a sealed v1), I got Step
+nominally wrong but on a question your spec doesn't actually need to
+answer, and my example was sold as a discriminating test case when it
+isn't one under your rules.''}
+
+\field{Accepted.} Recipe and List\textless T\textgreater\ calls match
+the spec's intent. AI's framing in turn~2 -- ``pick the more permissive
+rule when over-restriction has no upside'' -- is a one-liner defense of
+decision~\#10's structural-for-Ingredient call that I can quote almost
+verbatim in D1~\S4.8.
+
+\field{Rejected / modified.} Three substantive divergences:
+(1)~Ingredient picked name (spec picks structural).
+(2)~Step reasoning relied on strict-Sebesta reading; spec uses
+optional-fields-inclusive reading. (3)~Pseudo-syntax in the example
+(constructor-call form, list-literal of steps) is not Recipix surface
+syntax.
+
+\field{Errors caught.} (1)~The AI's domain reasoning optimized for
+extensibility scenarios that the closed v1 type-name set forecloses.
+(2)~The AI assumed a stricter notion of structural equivalence than
+the spec uses. (3)~The example program does not run under the rule it
+claimed to demonstrate -- the literal test the handout's E2
+specification names.
+
+\field{Reflection.} The interesting result here isn't that the AI got
+Ingredient wrong -- it's that the reasoning behind the wrong answer
+was sophisticated and forward-looking, and would have been correct for
+a different language. It hedged against \texttt{Cost \{name, quantity\}}
+collisions that v1 makes impossible because the type-name set is
+closed. That's the failure mode I think I'll see most often when
+prompting AI on Recipix design questions: the AI optimizes for the
+kind of evolution a generic record-based DSL would undergo, and v1
+has already foreclosed those evolutions. \emph{Lesson:} the AI
+accelerates generating design options. It does not decide which
+option a sealed v1 has already committed to. That's mine.
+
+
+\section{Session 10 -- Web Experiment E3: AI Implements \texttt{\_check\_ActionStmt}}
+
+\sessionheader{claude.ai/share/8190d922-7330-4181-84cd-40e1748c1e99}
+
+Two-turn session: cold implementation, then comparison against plan
+\S2.3 and the typechecker stub.
+
+\entryheader{19 of 24}{2026-05-21}{Type checker}{Claude Opus 4.7 (extended thinking: on)}
+
+\field{Goal.} Have the AI implement \texttt{\_check\_ActionStmt} on the
+\texttt{TypeChecker} class -- the \S10 error-\#13 enforcer for the
+twelve closed verbs in spec~\S8 -- without first showing it the
+three-class table from plan~\S2.3, then compare its inferred
+signatures to the locked design.
+
+\field{Prompt.} Verbatim: the twelve verbs (\texttt{combine, mix, add,
+sprinkle, pour, drizzle, whisk, blend, knead, melt, bake, flip}), the
+type-string contract for \texttt{env.lookup}, the four test inputs
+whose right answers I knew in advance, and the requirement to use at
+least one helper data structure (a verb-signature dict/table).
+
+The AI flagged an unsolicited prompt ambiguity before answering:
+\emph{``you said D $\in$ \{Mass, Volume, Count, Temperature, Duration\}
+-- Pinch is not in D -- but then the example return value mentions
+Quantity\textless Pinch\textgreater, and test \#1 uses
+Ingredient\textless Pinch\textgreater''}. Real prompt bug; the spec
+treats Pinch as a primitive, not a dimension, but the implicit-projection
+rule (\#31) and the test inputs effectively require the checker to
+handle \texttt{Ingredient<Pinch>} as well-formed.
+
+\field{Response (key part, turn~1, AI's first-pass implementation):}
+
+\begin{lstlisting}[style=py]
+VERB_SIGS = {
+    'combine': ('variadic', [], _ingredient_of(), 2),
+    'mix':     ('variadic', [], _ingredient_of(), 2),
+    'blend':   ('variadic', [], _ingredient_of(), 2),
+    'whisk':   ('fixed',    [_ingredient_of()]),
+    'flip':    ('fixed',    [_ingredient_of()]),
+    'knead':   ('fixed',    [_ingredient_of('Mass')]),
+    'melt':    ('fixed',    [_ingredient_of('Mass')]),
+    'pour':    ('fixed',    [_ingredient_of('Volume')]),
+    'drizzle': ('fixed',    [_ingredient_of('Volume')]),
+    'sprinkle':('fixed',    [_ingredient_of('Mass', 'Count')]),
+    'add':     ('variadic', [_ingredient_of()], _quantity_of(), 1),
+    'bake':    ('fixed',    [_ingredient_of(),
+                             _quantity_of('Temperature'),
+                             _quantity_of('Duration')]),
+}
+\end{lstlisting}
+
+Dispatcher distinguishes two signature kinds (\texttt{'fixed'} and
+\texttt{'variadic'}) with per-arg shape-check delegated to predicate
+factories. The AI explicitly named its biggest guesses up front:
+\emph{``combine/mix/blend accept any combination of dimensions...
+bake is fixed-arity 3. This is the biggest guess in the table.''}
+
+\field{Response (key part, turn~1, predicted verdicts on the four tests):}
+
+\begin{center}
+\small
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{\#} & \textbf{Test input} & \textbf{AI verdict} & \textbf{AI reason} \\
+\midrule
+1 & \texttt{combine(flour, salt)}        & accept & variadic $\geq 2$, both Ingredients \\
+2 & \texttt{pour(flour:Mass)}            & reject & pour locked to Volume \\
+3 & \texttt{bake(x)}                     & reject & bake arity 3, called with 1 \\
+4 & \texttt{blend(milk:Vol, sugar:Mass)} & accept & blend in any-mixed-dim bucket \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\field{Response (key part, turn~2, comparison against plan~\S2.3):}
+\emph{``The verdict is uncomfortable but useful for your E3 entry --
+I diverged in three substantive ways, and two of four test predictions
+flip under \S2.3.''} The three substantive divergences (AI's words):
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Per-verb table vs three-class collapse.}
+        \emph{``I built a per-verb table. \S2.3 collapses twelve verbs
+        into three classes precisely to avoid the per-verb branch
+        explosion. I optimized for cooking semantics; you optimized for
+        type-system parsimony.''}
+  \item \textbf{Heterogeneous-group misses.} Partial credit on
+        \texttt{combine}/\texttt{mix} (required $\geq 2$ args instead of
+        $\geq 1$); \texttt{add} was bespoke (spec puts it in
+        heterogeneous); \texttt{sprinkle} was restricted to Mass/Count
+        (spec admits any dimension including Pinch).
+  \item \textbf{Homogeneous-group misses.} Most divergent. Locked
+        per-verb dimensions; missed homogeneity rule entirely; missed
+        \texttt{flip} as nullary. Also missed decision~\#31.
+\end{enumerate}
+
+Four-test re-run under \S2.3:
+
+\begin{center}
+\small
+\begin{tabular}{@{}clllc@{}}
+\toprule
+\textbf{\#} & \textbf{Test} & \textbf{AI cold} & \textbf{\S2.3} & \textbf{Status} \\
+\midrule
+1 & \texttt{combine(flour, salt)}     & accept & accept              & match (right verdict, wrong rule) \\
+2 & \texttt{pour(flour:Mass)}         & reject & \textbf{accept}     & \textbf{flipped} \\
+3 & \texttt{bake(x)}                  & reject (arity 3$\neq$1) & reject (arity 0$\neq$1) & match-by-coincidence \\
+4 & \texttt{blend(milk, sugar)}       & accept & \textbf{reject}     & \textbf{flipped} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+AI's score framing: \emph{``If you're scoring strictly on `did the AI
+produce the same accept/reject column as the spec,' 2/4. If you're
+scoring on `did the AI produce the right verdict for the right rule,'
+1/4.''} The AI then volunteered a \S2.3-aligned correction unsolicited
+-- a clean three-class dispatcher with sets + \texttt{\_project\_to\_quantity}
+helper. That correction became a usable starting point for the
+implementation.
+
+\field{Accepted.} Dispatcher skeleton is reusable. The
+\texttt{\_parse\_type} helper survives unchanged. AI's
+\texttt{error\_code=13} choice is consistent with the spec. The AI's
+corrected \texttt{\_check\_ActionStmt} body in turn~2 became part of
+the eventual implementation. AI's unsolicited prompt-ambiguity flag
+(Pinch in D vs not in D) surfaced something the v4.2 spec needs to
+clarify.
+
+\field{Rejected / modified.} Everything in the cold first-pass except
+the dispatcher skeleton: the twelve-row \texttt{VERB\_SIGS} table
+(replaced with the three-class form), per-verb dimension locks (no
+per-verb dim in spec, only homogeneity), \texttt{combine}/\texttt{mix}/\texttt{blend}
+min-arity $\geq 2$ (spec is $\geq 1$), bespoke \texttt{add} signature
+(spec heterogeneous), \texttt{bake} as fixed-arity 3 (spec nullary;
+temperature/duration moved to step modifiers), \texttt{flip} unary
+(spec nullary), \texttt{whisk} unary (spec homogeneous), missing
+implicit Ingredient~$\to$~Quantity projection.
+
+\field{Errors caught.} (1)~Test 2 (\texttt{pour(flour)}) verdict flipped
+-- AI rejected on hard-coded Volume; spec accepts because pour is
+homogeneous and single-arg is trivially homogeneous.
+(2)~Test 4 (\texttt{blend}) verdict flipped -- AI grouped with combine/mix
+as heterogeneous; spec puts in homogeneous with dimension mismatch.
+(3)~Test 3 matched verdict for the wrong reason.
+(4)~Decision~\#31 (Ingredient~$\to$~Quantity projection) absent.
+(5)~Per-verb cooking-semantics over-specify against the spec's
+type-system parsimony.
+
+\field{Reflection.} The biggest takeaway from this one is that the
+AI's design instinct -- ``more rules cover more cases'' -- is exactly
+opposite to the spec's instinct of ``fewer rules cover the same cases
+at lower exam and maintenance cost.'' Twelve per-verb signatures look
+like authority on first read; the AI's own retrospective lands on this
+in one line: \emph{``I optimized for cooking semantics; you optimized
+for type-system parsimony.''} That framing is the one I want in
+\S4.8 and in my head for the exam. The other half of the experiment
+is what happened after the spec came into view: the AI wrote its own
+\S2.3-aligned correction, unsolicited, and got it essentially right.
+\textbf{AI implements decisions well. It does not invent them well.}
+That's the working pattern I'll keep across the rest of Part~2 -- I
+drive the decisions, the AI drives the implementation, and the
+journal is the record of what happens when those roles slip.
+
+
+\section{Session 11 -- Developer Agent: Interpreter + Rendering Build}
+
+Source: \texttt{session11\_developer\_interpreter\_2026-05-21.jsonl}
+(uploaded alongside this PDF). Autonomous developer-agent run
+dispatched from a Claude Code PM session, executed in a single long
+autonomous turn.
+
+\entryheader{20 of 24}{2026-05-21}{Interpreter implementation (autonomous agent)}{Claude Sonnet 4.6 (Claude Code agent)}
+
+\field{Goal.} Build the runtime half of Recipix Part~2:
+\texttt{interpreter.py} and \texttt{rendering.py}, plus a 36-test suite
+covering the \S4 task list in \texttt{part2\_plan.md}. The type checker
+remains stubbed (İsmail's half); the agent must not dispatch
+\texttt{AmbiguousCall} and must fail loudly if it sees one. Sample~1
+and Sample~2 must produce rendered cookbook-style output; Sample~3
+must remain a type-error path.
+
+\field{Prompt.} \textasciitilde 3.5k-character developer-agent prompt
+covering: scope (interpreter + rendering only; do not modify Part~1
+files; do not touch \texttt{typechecker.py}), the runtime contract
+sections of \texttt{part2\_plan.md} to read first, the 14-step
+recommended order, the runtime-error checklist (5 errors from spec
+\S10), and the acceptance criteria.
+
+\field{Accepted.} The agent produced commits \texttt{51c1b03}
+(interpreter + rendering implementation, 619 lines) and \texttt{fac696a}
+(36-test suite). Tools used: $\sim$40 Edit + Write, $\sim$30 Read,
+$\sim$20 Bash for verification. The eager-step-evaluation strategy was
+the one locked at the time in plan~\S2.2; the agent followed it.
+\texttt{AmbiguousCall} dispatch raises \texttt{RuntimeRecipixError}
+unconditionally -- the loud-fail behavior asked for; integration tests
+use a separate helper to simulate the typechecker's resolution.
+
+\field{Rejected / modified.} Three findings from a follow-up PM review
+(entry~21) led to commit \texttt{d5c539c}: the original AmbiguousCall
+handler had a fallback dispatching via symbol-table \texttt{isinstance}
+checks (would let a missing-typechecker bug pass silently for any name
+in scope), and the test suite had gaps on runtime error~\#4
+(\texttt{substitute} of unknown ingredient) and decision~\#31. All
+three were closed in the follow-up commit; the agent self-corrected on
+all three when given the gap report.
+
+\field{Errors caught.} The PM review (entry~21) caught all three gaps
+before any of them shipped to a passing-on-the-surface-but-broken-in-integration
+state. The agent itself self-caught only one error during the build:
+an early version of the unit-conversion table had a wrong conversion
+factor; it noticed during the test pass for sample~1 and corrected.
+Test count: 36, all passing on first full run.
+
+\field{Reflection.} The pattern I keep seeing with autonomous developer
+agents in Claude Code is that when the contract is locked tightly
+enough, the agent's free movement is on the implementation surface
+only -- it doesn't drift into design decisions, it doesn't invent
+abstractions I didn't ask for, and it ticks the task list. \emph{AI
+is good at breadth-first implementation when the spec is locked} --
+exactly the same finding as my Part~1 entries 14 and 15, and the same
+caveat applies: AI is unreliable on second-order semantics. The
+eager-vs-lazy step-eval question is one such second-order question
+the agent didn't surface; I had to lock it in the contract before the
+build and the agent followed.
+
+
+\section{Session 12 -- PM Agent: Interpreter Commits Review}
+
+Source: \texttt{session12\_pm\_interpreter\_review\_2026-05-21.jsonl}.
+PM-agent session that reviewed the two developer commits against the
+runtime contract in \texttt{part2\_plan.md}.
+
+\entryheader{21 of 24}{2026-05-21}{Post-developer review (PM agent)}{Claude Opus 4.7}
+
+\field{Goal.} Have the PM read the developer's interpreter + test
+commits, run the test suite, and produce a realistic review (not a
+rubber stamp) before shipping the work to İsmail's typechecker handoff.
+
+\field{Prompt.} PM-agent prompt covering: scope (commits \texttt{51c1b03}
+and \texttt{fac696a} only; do not modify code; do not touch
+\texttt{typechecker.py}; produce a written review with file:line
+citations), the contract sections to verify against, the six rubric
+dimensions, and a structured deliverable.
+
+\field{Accepted.} PM produced a structured review with per-contract
+verdicts. Three gaps surfaced:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Gap F:} Runtime error \#4 (substitute of unknown
+        ingredient) had no test pinning the message.
+  \item \textbf{Gap G:} Decision~\#31 (implicit Ingredient~$\to$~Quantity
+        projection) had implementation coverage but no dedicated test
+        class.
+  \item \textbf{Gap I:} AmbiguousCall dispatcher had a fallback that
+        dispatched via symbol-table isinstance checks -- silent-failure
+        mode that would corrupt integration testing.
+\end{itemize}
+
+All three gaps were classified as ``fix tonight'' with concrete
+remediation steps. I dispatched a second developer-agent round; that
+round landed as \texttt{d5c539c} and the gaps were all closed. Test
+count went 147 $\to$ 152.
+
+\field{Rejected / modified.} Nothing rejected -- the three gaps were
+all real.
+
+\field{Errors caught.} The single most useful PM finding was Gap~I
+(silent-AmbiguousCall fallback). It's the kind of bug that wouldn't
+surface until İsmail's typechecker is fully wired in and tests are
+running through the full pipeline -- at which point a missed
+AmbiguousCall would corrupt the output. The PM caught it by reading
+the interpreter source against the contract claim of ``loud raise on
+AmbiguousCall.''
+
+\field{Reflection.} Two PM rounds across both parts of this project
+(entry~8 Part~1, entry~21 Part~2) have produced the same shape of
+finding: silent-failure modes that would propagate downstream. The PM
+doesn't catch obvious bugs -- the developer agent has tests for
+those. The PM catches the kind of bug where two parts of the system
+look fine in isolation but disagree under integration. \emph{Lesson:}
+ask the PM to read contracts and implementations \emph{against each
+other}, not separately.
+
+
+\section{Session 13 -- Professor Agent: Pass-1 + Final Rubric Review}
+
+Source: \texttt{session13\_professor\_2026-05-21\_to\_2026-05-23.jsonl}.
+Same session UUID extended across two days: a Pass-1 narrow-scope review
+on May~21 and a final full-scope review on May~23 after the type
+checker and bug-fix rounds had landed. Two entries (22 and 23) cite
+this one session.
+
+\entryheader{22 of 24}{2026-05-21}{Pass-1 rubric review (autonomous agent)}{Claude Opus 4.7}
+
+\field{Goal.} Get a tenured-PL-professor-style review of the
+in-scope artifacts under the six-dimension rubric (Correctness, Design
+Justification, Sebesta Framework, Originality, Code Quality, Exam
+Performance) before submission, with predicted exam questions for each
+partner.
+
+\field{Prompt.} Professor-agent prompt (\textasciitilde 1.2k characters)
+covering: scope (locked or stable artifacts only -- typechecker
+explicitly out of scope at this point), required output structure
+(rubric grades, top findings per dimension, predicted exam questions
+with target answers and exposure ratings, triage list), tone
+(skeptical, ``find what the grader will find'').
+
+\field{Accepted.} Agent produced a structured $\sim$1500-word review
+with: tentative letter grades per rubric dimension (B+ to A$-$ across
+the six), 14 findings clustered by dimension, 5+5 predicted exam
+questions with target answers and exposure ratings, and a triage list.
+
+\field{Rejected / modified.} Nothing rejected substantively; every
+finding I cross-checked against the actual code matched the agent's
+claim.
+
+\field{Errors caught.} F1 (the eager-vs-lazy step evaluation
+inconsistency surfacing in sample~1's output) is the kind of finding I
+would have walked into the exam with unprepared. The grader would have
+asked ``why does sample~1 show serves~6 but only 4 loop iterations?''
+F4 (error~\#19 referenced in plan~\S2.6 but missing from spec~\S10's
+error list) and F5 (no Sebesta hook for why \texttt{scale} skips
+Temperature/Duration) were both fixable in 5 minutes and not caught by
+the PM review (which was looking for contract-vs-implementation drift,
+not spec-vs-plan drift).
+
+\field{Reflection.} The two-agent pattern I converged on by the end of
+Part~2 -- PM agent for contract-vs-implementation drift, professor
+agent for grader-vs-submission drift -- is the working pattern I'll
+take into the next multi-week project. Each agent has a different
+default failure mode: the PM defaults to ``this code passes its tests,
+looks fine,'' the professor defaults to ``where would I subtract
+points.''
+
+\begin{tcolorbox}[colback=ackcolor!8,colframe=ackcolor!50,boxrule=0.5pt]
+\small\textbf{Postscript (2026-05-23).} The F1 ``docstring fix + \S4.4
+sentence'' resolution recorded above was superseded later that week.
+After İsmail's bug-fix round introduced a \texttt{captured\_params}
+re-execution mechanism for \texttt{scale}, I accepted the new
+semantics (\texttt{scale} re-executes step bodies under the rebound
+\texttt{servings}) rather than continuing to defend the eager-only
+behavior with a docstring patch. The professor pass's F1 recommendation
+became obsolete -- the better resolution was to take the free win the
+new implementation offered. D1~\S4.4 and D3~\S2 were rewritten to
+match the new semantics. The original docstring drift is now resolved
+by code matching docs in the opposite direction from what the Pass-1
+review proposed.
+\end{tcolorbox}
+
+\entryheader{23 of 24}{2026-05-23}{Final rubric review (autonomous agent, session 13 continuation)}{Claude Opus 4.7}
+
+\field{Goal.} Final pre-submission rubric review of the complete Part~2
+submission -- typechecker landed, bug-fix round integrated, samples
+running end-to-end, documents drafted -- to confirm SHIP and surface
+any last fixable findings.
+
+\field{Prompt.} Same professor framing as Pass-1, scoped to the
+finalized state: now includes the typechecker, the D1~[P2] sections,
+the D3 PDF stub, D5, and the cumulative D4 in progress.
+
+\field{Accepted.} Agent produced rubric grades, 5+5 predicted exam
+questions per partner, three ranked fix-tonight items, and a clean
+SHIP-WITH-FIXES verdict. Predicted exam questions for me cover the
+\texttt{scale} re-execution rule (\textbf{B1}, low exposure -- defended
+in D1~\S4.4 and D3~\S2); banker's rounding rationale (\textbf{B2}, low
+exposure -- pinned by tests); Sebesta \S7.6 operand evaluation order
+(\textbf{B3}, medium exposure -- rehearse the C-style contrast on
+\texttt{i++ + i++}); the step-body partial-evaluator in
+\texttt{interpreter.py} (\textbf{B4}, low exposure -- code is mine);
+and Sebesta \S7.2 precedence of \texttt{quantity\_of} (\textbf{B5}, low
+exposure -- decision \#34 rationale in spec). Predicted questions for
+İsmail cover the type-equivalence split (\textbf{I1}, low),
+\texttt{int}/\texttt{float} coercion asymmetry (\textbf{I2}, low),
+the three-class \texttt{pour} verdict (\textbf{I3}, medium -- v2
+refinement framing), \texttt{AmbiguousCall} rewrite-vs-annotate
+(\textbf{I4}, medium -- must have read interpreter.py), and Pinch as
+primitive (\textbf{I5}, low).
+
+\field{Rejected / modified.} Nothing rejected. Three fix-tonight items
+ranked by leverage: (F1)~edit one sentence in entry~22 to align the
+journal narrative with the eventual fix path; (F3)~add error \#19 row
+to spec~\S10's table; (F2)~wrap \texttt{env.define()} in
+\texttt{\_eval\_LetStmt} with try/except to catch
+\texttt{RedeclarationError}. All three are $\leq 10$~minutes each and
+none touch tested code paths.
+
+\field{Errors caught.} The F1 finding is the single most useful one
+from this pass: my Pass-1 entry described one fix path (docstring +
+\S4.4 sentence), and the eventual fix path was different (full
+re-execution rule via \texttt{captured\_params}). Without the
+postscript on entry~22 (now added), a grader who reads
+D4~$\to$~D5~$\to$~code in order would catch the drift in 30 seconds.
+
+\field{Reflection.} The same-session-extended-across-days pattern is
+something I'll take forward. The professor agent had Pass-1 context
+already in its working memory; the May~23 continuation didn't need
+re-onboarding. The trade-off is that the cumulative output is harder
+to grep against -- there are two reviews layered in one transcript --
+but for personal use the continuity is worth it. Lesson for the
+exam: \emph{the professor's job is to flag drift between artifacts;
+the dev's job is to flag drift between code and tests; both jobs are
+the human's job to integrate.}
+
+
+\section{Session 14 -- Tester Agent: Final Pre-Submission Verification}
+
+Source: \texttt{session14\_tester\_final\_verification\_2026-05-23.jsonl}.
+Fresh session UUID; single long verification turn against the finalized
+\texttt{origin/main} commit.
+
+\entryheader{24 of 24}{2026-05-23}{Final functional verification (autonomous agent)}{Claude Opus 4.7}
+
+\field{Goal.} Run the final pre-submission verification pass on the
+Recipix Part~2 project against \texttt{origin/main}. Confirm 152~tests
+green, all CLI commands behave as documented, sample-3 type-error
+trace is pinned verbatim, the 19~\S10 errors are covered, and the
+four canonical action-verb test cases produce the locked verdicts.
+
+\field{Prompt.} Tester-agent prompt covering: scope (run, don't modify;
+no commit, no push), required output structure (test count, CLI
+results, sample-3 trace verbatim, 19-error coverage table, action-verb
+verdicts, SHIP verdict), and explicit cleanup of any temporary
+\texttt{.rcx} files created for the action-verb cases.
+
+\field{Accepted.} Agent verified commit \texttt{db7a241}, ran all six
+target CLI commands, built the 19-error coverage table, and ran the
+four action-verb cases via temp \texttt{.rcx} files which it then
+cleaned up. \textbf{Verdict: SHIP.} Concrete numbers:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \texttt{python -m unittest discover src/tests} $\to$ ``Ran
+        152 tests in 0.039s -- OK'' (0 failures, 0 errors).
+  \item \texttt{python main.py --run sample1.rcx} $\to$
+        \texttt{pancakes -- serves 6} with the six pour/flip cycles
+        (scale re-executes step bodies per \texttt{db7a241}).
+  \item \texttt{python main.py --run sample2.rcx} $\to$ vegan smoothie
+        with \texttt{milk} removed by substitute, then non-vegan with
+        both \texttt{milk} and \texttt{oat\_milk} shown.
+  \item \texttt{python main.py --typecheck sample3.rcx} $\to$ exit~1,
+        \texttt{type error at line 13, col 0: dimension mismatch:
+        cannot + Mass and Volume}.
+  \item Imports smoke-test $\to$ \texttt{imports OK}.
+\end{itemize}
+
+The 19-error coverage table shows every error has a type-checker code
+path with file:line citation. Action-verb verdicts: all four canonical
+cases produce the expected accept/reject with the exact error messages.
+
+\field{Rejected / modified.} Nothing rejected -- agent did exactly the
+verification asked for, no scope creep into modifying code or
+``helpful'' refactors. The two minor non-blocking observations the
+tester surfaced -- (a)~no dedicated \texttt{test\_typechecker.py}
+pinning per-error messages (regression fixtures provide coverage but
+not regression-proof), and (b)~sample~3's column is reported as~0
+rather than the column of \texttt{+} -- are both cosmetic.
+
+\field{Errors caught.} None -- the submission was already clean before
+this pass. The tester's contribution was \emph{confirming the SHIP
+claim with concrete numbers}, which is the verification any
+submission deserves before clicking upload. The verbatim sample-3
+trace this session captured is the one pinned in D3~\S4.
+
+\field{Reflection.} A final functional verification before submission
+is cheap insurance. The tester agent's report adds nothing the test
+suite doesn't already say, but the formatting -- exit codes, first 15
+lines of output, the four action-verb temp programs run independently
+of the existing test fixtures -- is exactly the artifact I want
+sitting alongside the submission as proof-of-shippability. \emph{Lesson
+for next time:} schedule the tester pass for the morning of the
+deadline, not the night before. The tester catches nothing useful on
+a hot tree where you're still editing; it catches everything useful on
+a frozen tree where the only remaining action is \emph{click upload}.
+
+
+\section*{Cumulative summary}
+
+Across Part~1 (15 entries, May~6--8) and Part~2 (this continuation,
+9 entries, May~20--23), the journal documents \textbf{24 substantive
+AI sessions} covering: 4 Claude.ai web sessions (2~brainstorming,
+1~planning, 3~E-experiments), 4 Claude Code PM sessions (2~in Part~1,
+2~in Part~2), 4 Claude Code autonomous-agent runs (developer Part~1,
+developer + PM + professor + tester Part~2). Mandatory experiments
+E1~(catch-up -- see entry~17 note), E2, and E3 are all documented
+with shareable claude.ai/share URLs at sessions 8, 9, 10. Four
+Claude Code transcripts are uploaded as JSONL files alongside this
+PDF for sessions 11, 12, 13, 14.
+
+The journal contains \textbf{seven documented cases} where the AI was
+wrong, suboptimal, or made claims I had to verify against the spec,
+the repo, or Sebesta and override:
+
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item Entry~2 (Part~1): structural equivalence suggested for
+        \texttt{Recipe} type; caught by reading Sebesta~\S6.14
+        against the suggestion.
+  \item Entry~8 (Part~1): two parallel \texttt{tokens.py} files
+        duck-typed compatibly but would silently break under rename;
+        caught by the PM agent.
+  \item Entry~14 (Part~1): developer agent generalized decision~\#17
+        too broadly; caught by the tester-agent's
+        \texttt{a < b == c} fixture.
+  \item Entry~17 (Part~2 / E1): \texttt{substitute} slots typed as
+        \texttt{Expression} instead of bare \texttt{IDENT}; caught by
+        reading spec~\S13 against the AI's grammar.
+  \item Entry~18 (Part~2 / E2): name equivalence recommended for
+        \texttt{Ingredient} based on hypothetical record collisions
+        that a closed v1 forecloses; caught by reading spec~\S1 and
+        decision~\#10 against the recommendation.
+  \item Entry~19 (Part~2 / E3): 12-row per-verb action-verb signature
+        table instead of the 3-class collapse; caught by reading
+        plan~\S2.3 against the AI's implementation.
+  \item Entry~22/23 (Part~2 / Professor): F1 scale-vs-loop
+        inconsistency in the Pass-1 review; the recommended fix
+        (docstring patch) was superseded by a better fix
+        (\texttt{captured\_params} re-execution rule) when İsmail's
+        bug-fix round arrived. Caught by re-reading entry~22 in light
+        of the May~22--23 changes.
+\end{itemize}
+
+That's seven documented AI-was-wrong moments across both parts of the
+project -- above the ``three documented cases'' floor the handout
+sets, and weighted toward the design / type-system corners where the
+rubric's Design Justification and Sebesta Framework dimensions are
+graded.
+
+\vfill
+\noindent\rule{\textwidth}{0.4pt}
+\begin{center}
+\small
+\emph{End of Part~2 continuation. Combined with the Part~1 journal
+(\texttt{210104004132\_D4\_P1.pdf}, May~8 submission), this completes
+the D4 deliverable for CSE~341 Spring~2026.}
+\end{center}
+
+\end{document}
