@@ -459,7 +459,12 @@ class TypeChecker:
         return self._annotate(node, "bool")
 
     def _check_StringLit(self, node: ast.StringLit) -> str:
-        return self._annotate(node, "str")
+        raise TypeCheckError(
+            node.line, 0,
+            "string literal in expression position: per spec §1, string is not "
+            "a type and string literals are only allowed as step descriptions",
+            error_code=21,
+        )
 
     def _check_QuantityLit(self, node: ast.QuantityLit) -> str:
         if node.unit == "pinch":
@@ -472,7 +477,13 @@ class TypeChecker:
 
     def _check_ListLit(self, node: ast.ListLit) -> str:
         if not node.elements:
-            return self._annotate(node, "List<?>")
+            raise TypeCheckError(
+                node.line, 0,
+                "empty list literal: Recipix v1 has no list type annotation syntax, "
+                "so the element type of an empty list cannot be inferred; "
+                "write a list with at least one element",
+                error_code=20,
+            )
         types = [self._check_expr(e) for e in node.elements]
         first = types[0]
         first_dim = self._dimension_of(first)

@@ -165,10 +165,16 @@ class Interpreter:
         raise Interpreter.ReturnException(self._eval(node.expr, env))
 
     def _eval_ActionStmt(self, node, env):
-        # Outside of recipe bodies, action statements are not legal — the
-        # type checker would have rejected this. If we still see one here
-        # (e.g. running parse-only code), treat it as a no-op for safety.
-        return None
+        # Invariant: action statements may only appear inside a recipe step body,
+        # where they are handled by _exec_step_body, not _exec_stmt.
+        # Reaching this method means the type checker let an action verb leak
+        # into a non-step context — raise loudly so the bug surfaces immediately.
+        raise RuntimeRecipixError(
+            node.line,
+            f"internal error: action verb {node.verb!r} reached the generic "
+            f"statement dispatcher; action verbs are only legal inside step "
+            f"bodies and should have been rejected by the type checker",
+        )
 
     # -- expressions: literals + identifier --------------------------------
 
@@ -462,11 +468,16 @@ class Interpreter:
                 "line": step.line,
             })
 
+        captured = {p.name: recipe_env.lookup(p.name) for p in decl.params}
+
         return RtRecipe(
             name=decl.name,
             servings=servings_value,
             ingredients=ingredients,
             steps=steps,
+            step_decls=decl.steps,
+            serves_decl=decl.serves,
+            captured_params=captured,
         )
 
     def _exec_step_body(self, body, env: Environment, actions: list) -> None:
@@ -554,11 +565,40 @@ class Interpreter:
 
         new_servings = int(round(recipe.servings * by))
 
+        # Re-execute step bodies with the scaled servings so repeat counts
+        # referencing the servings parameter reflect the new value.
+        scaled_env = self.globals.child()
+        for name, val in recipe.captured_params.items():
+            if isinstance(val, int) and not isinstance(val, bool) and val == recipe.servings:
+                scaled_env.define(name, new_servings)
+            else:
+                scaled_env.define(name, val)
+        for ing_name, ing in new_ings.items():
+            scaled_env.define(ing_name, ing)
+
+        new_steps: list = []
+        for step_decl in recipe.step_decls:
+            step_env = scaled_env.child()
+            at_v  = self._eval(step_decl.at_expr,  step_env) if step_decl.at_expr  else None
+            for_v = self._eval(step_decl.for_expr, step_env) if step_decl.for_expr else None
+            actions: list = []
+            self._exec_step_body(step_decl.body, step_env, actions)
+            new_steps.append({
+                "description": step_decl.description,
+                "at": at_v,
+                "for": for_v,
+                "actions": actions,
+                "line": step_decl.line,
+            })
+
         return RtRecipe(
             name=recipe.name,
             servings=new_servings,
             ingredients=new_ings,
-            steps=recipe.steps,
+            steps=new_steps,
+            step_decls=recipe.step_decls,
+            serves_decl=recipe.serves_decl,
+            captured_params=recipe.captured_params,
         )
 
     def _eval_SubstituteCall(self, node, env):

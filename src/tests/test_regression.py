@@ -30,11 +30,11 @@ for _p in (_src, os.path.dirname(_here)):
 
 from lexer import Lexer, LexerError
 from recipix.parser import parse
-from recipix.errors import ParseError
+from recipix.typechecker import check
+from recipix.errors import ParseError, TypeCheckError
 
-# Lexer-level rejection and parser-level rejection are both
-# "front-end refused this source", which is what should_fail expresses.
-_REJECT_ERRORS = (ParseError, LexerError)
+# Front-end (lex/parse) or type-checker rejection both count as "refused".
+_REJECT_ERRORS = (ParseError, LexerError, TypeCheckError)
 
 
 _REG_DIR    = os.path.join(_here, "regression")
@@ -46,6 +46,13 @@ def _parse_file(path: str):
     with open(path, encoding="utf-8") as fh:
         src = fh.read()
     return parse(Lexer(src).tokenize())
+
+
+def _parse_and_check_file(path: str):
+    """Parse then type-check; raises ParseError, LexerError, or TypeCheckError."""
+    program = _parse_file(path)
+    check(program)
+    return program
 
 
 def _gather(subdir: str):
@@ -76,10 +83,10 @@ def _make_pass_test(fname: str):
 def _make_fail_test(fname: str):
     def test(self):
         with self.assertRaises(_REJECT_ERRORS,
-                               msg=f"{fname} should have raised LexerError or ParseError"):
-            _parse_file(os.path.join(_FAIL_DIR, fname))
+                               msg=f"{fname} should have raised a front-end or type error"):
+            _parse_and_check_file(os.path.join(_FAIL_DIR, fname))
     test.__name__ = f"test_fail_{fname.replace('.', '_').replace('-', '_')}"
-    test.__doc__  = f"{fname} must raise ParseError"
+    test.__doc__  = f"{fname} must raise ParseError, LexerError, or TypeCheckError"
     return test
 
 

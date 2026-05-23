@@ -137,11 +137,17 @@ class RtRecipe:
     ``steps`` holds the AST nodes for lazy rendering — the interpreter
     does not evaluate step bodies at recipe instantiation; rendering
     walks them.
+
+    ``step_decls``, ``serves_decl``, ``captured_params`` are stored so
+    that ``scale`` can re-execute step bodies with an updated environment.
     """
     name: str
     servings: int
     ingredients: dict[str, RtIngredient] = field(default_factory=dict)
     steps: list = field(default_factory=list)
+    step_decls: list = field(default_factory=list)
+    serves_decl: object = None
+    captured_params: dict = field(default_factory=dict)
 
 
 @dataclass
