@@ -109,35 +109,14 @@
 \thispagestyle{fancy}
 
 
-\section*{Continuation note}
+\section*{Part 2 (entries 16--24)}
 
-This document continues the AI Usage Journal I submitted with Part~1
-(\texttt{210104004132\_D4\_P1.pdf}, 15 entries across 6 sessions, dated
-May 6--8 2026). It documents the AI sessions I used during Part~2 work,
-dated May~20--23 2026. Entry numbering continues from the Part~1
-journal: this document contains entries \textbf{16 through 24}.
-
-Part~2 added two AI workflows on top of the Part-1 pattern (web
-brainstorming + PM-in-Code + autonomous developer/tester agents).
-First, a single Claude.ai web planning chat that turned into the
-Part~2 roadmap and the \texttt{part2\_plan.md} contract with İsmail.
-Second, three discrete Claude.ai web sessions running the mandatory
-experiments E1 (catch-up -- see entry~17 note), E2, and E3 each in a
-fresh model with no prior context. Third, three Claude Code sessions
-covering the Part~2 build: a developer agent that produced the
-interpreter + 36-test suite, a PM agent that reviewed those commits
-and closed three gaps, and a professor agent that ran a Pass-1
-rubric-graded review of the in-scope artifacts. The professor session
-was extended on May~22--23 with a second turn (final rubric review of
-the finalized state -- same session UUID, two entries cite it), and
-a fresh tester session was run on May~23 for the final functional
-verification before submission.
-
-In total Part~2 produced \textbf{8 sessions} (sessions 7--14 in the
-table below) and \textbf{9 entries} (entries 16--24), since the
-professor session is cited by two entries.
-
-\subsection*{Sessions covered in this continuation}
+Continues my Part-1 D4 journal (\texttt{210104004132\_D4\_P1.pdf},
+15 entries / 6 sessions, May~6--8). This document documents
+\textbf{9 entries from 8 sessions} during Part~2 work, dated
+May~20--23. The professor session (13) is cited by two entries
+because it was used across two days; every other session has one
+entry.
 
 \begin{center}
 \small
@@ -152,7 +131,7 @@ professor session is cited by two entries.
 11 & Developer Agent -- Interpreter + Rendering build           & Claude Code (Sonnet 4.6, autonomous)          & 2026-05-21 \\
 12 & PM Agent -- Interpreter Commits Review                     & Claude Code (Opus 4.7)                        & 2026-05-21 \\
 13 & Professor Agent -- Pass-1 + Final Rubric Review            & Claude Code (Opus 4.7)                        & 2026-05-21 / 2026-05-23 \\
-14 & Tester Agent -- Final Pre-Submission Verification          & Claude Code (Opus 4.7)                        & 2026-05-23 \\
+14 & Tester Agent -- Verification (two turns)                   & Claude Code (Opus 4.7)                        & 2026-05-22 / 2026-05-23 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -164,7 +143,7 @@ JSONL files:
 \item \texttt{session11\_developer\_interpreter\_2026-05-21.jsonl}
 \item \texttt{session12\_pm\_interpreter\_review\_2026-05-21.jsonl}
 \item \texttt{session13\_professor\_2026-05-21\_to\_2026-05-23.jsonl}
-\item \texttt{session14\_tester\_final\_verification\_2026-05-23.jsonl}
+\item \texttt{session14\_tester\_2026-05-22\_to\_2026-05-23.jsonl}
 \end{itemize}
 
 The four web sessions have shareable URLs cited inline within each
@@ -904,13 +883,16 @@ the dev's job is to flag drift between code and tests; both jobs are
 the human's job to integrate.}
 
 
-\section{Session 14 -- Tester Agent: Final Pre-Submission Verification}
+\section{Session 14 -- Tester Agent: Verification}
 
-Source: \texttt{session14\_tester\_final\_verification\_2026-05-23.jsonl}.
-Fresh session UUID; single long verification turn against the finalized
-\texttt{origin/main} commit.
+Source: \texttt{session14\_tester\_2026-05-22\_to\_2026-05-23.jsonl}.
+The verification prompt was run twice against the same session -- once
+on 2026-05-22 to audit the post-handoff integration state, and again
+on 2026-05-23 to audit the finalized submission state after the
+bug-fix round and cleanup. Entry~24 documents the May~23 turn, which
+returned the SHIP verdict.
 
-\entryheader{24 of 24}{2026-05-23}{Final functional verification (autonomous agent)}{Claude Opus 4.7}
+\entryheader{24 of 24}{2026-05-23}{Functional verification (autonomous agent, second turn)}{Claude Opus 4.7}
 
 \field{Goal.} Run the final pre-submission verification pass on the
 Recipix Part~2 project against \texttt{origin/main}. Confirm 152~tests
@@ -962,16 +944,17 @@ claim with concrete numbers}, which is the verification any
 submission deserves before clicking upload. The verbatim sample-3
 trace this session captured is the one pinned in D3~\S4.
 
-\field{Reflection.} A final functional verification before submission
-is cheap insurance. The tester agent's report adds nothing the test
-suite doesn't already say, but the formatting -- exit codes, first 15
-lines of output, the four action-verb temp programs run independently
-of the existing test fixtures -- is exactly the artifact I want
-sitting alongside the submission as proof-of-shippability. \emph{Lesson
-for next time:} schedule the tester pass for the morning of the
-deadline, not the night before. The tester catches nothing useful on
-a hot tree where you're still editing; it catches everything useful on
-a frozen tree where the only remaining action is \emph{click upload}.
+\field{Reflection.} A functional verification turn before submission
+is cheap insurance, and reusing the same session across two days kept
+the agent's context intact: it didn't have to re-read the contract,
+the spec, and the plan from scratch on the second turn. The report
+adds nothing the test suite doesn't already say, but the formatting
+-- exit codes, first~15 lines of output, the four action-verb temp
+programs run independently of the existing test fixtures -- is exactly
+the artifact I want sitting alongside the submission as
+proof-of-shippability. \emph{Lesson for next time:} schedule the
+verification turn on a frozen tree where the only remaining action is
+\emph{click upload}, not on a tree still being edited.
 
 
 \section*{Cumulative summary}
