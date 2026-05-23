@@ -87,13 +87,17 @@ Steps:
      - flip()
      - pour(milk)
      - flip()
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
 ```
 
 ### Discussion (3–5 sentences)
 
 This program exercises a scalar helper function (`half`), a parameterized recipe with a `serves` expression that depends on a parameter, four ingredient declarations that mix `Mass`, `Volume`, `Count`, and `Pinch` types, three step declarations including one with both `at` and `for` modifiers (in the locked decision-#23 order), a count-bounded `repeat` loop whose count depends on the recipe parameter, and a `scale` call at the top level wrapped in an `evaluate`. The output shows `scale(_, by: 1.5)` correctly multiplying `Mass` (50 g × 4 × 1.5 = 300 g) and `Volume` (60 ml × 4 × 1.5 = 360 ml) ingredients and the `Count` of eggs (2 × 1.5 = 3 after `int(round(...))` per plan §2.6's banker's rounding rule), while leaving `Pinch` untouched and the `at 180 °C` temperature unchanged — decision #25's "scale touches quantities and servings, not Temperature or Duration."
 
-The four `pour(milk) / flip()` cycles in step 3 deserve specific comment: the recipe was instantiated with `servings = 4` (so `repeat servings times` unrolls to 4 iterations of the step body), and `scale` then post-multiplies the resulting `RtRecipe` to `servings = 6` without re-entering the step body. This is the locked behavior per spec §9 (`scale` "multiplies the servings field by the scalar" — silent on loops) and the operational semantics in D1 §4.4 above: step bodies are evaluated eagerly at recipe instantiation, and `scale` rewrites header fields only, preserving the referential transparency of the operator (decision #25). Re-entering the step body would mean `scale(R, by: 1)` is observably different from `R` for any recipe with side-effecting render. The visible cost — "serves 6" with 4 step-body iterations — is consistent with the language's declared semantics and is the design call I would have to revisit only if Recipix v2 introduced step bodies that depended on a *current* `servings` binding rather than the at-instantiation one.
+The six `pour(milk) / flip()` cycles in step 3 are worth specific comment because they demonstrate the **step-body re-execution rule** locked in D1 §4.4 above. The recipe was instantiated with `servings = 4`, then `scale(_, by: 1.5)` rebound `servings` to 6 in a fresh evaluation environment and re-executed the step bodies against it. The `repeat servings times` loop counts six iterations under the rebound `servings`, not four. This is the user-intuitive reading of `scale` — doubling a recipe doubles the work, not just the header numbers — and it is consistent with spec §9's "multiplies the servings field by the scalar" once we accept that any step-body construct referring to `servings` should reflect the scaled value. Referential transparency (decision #25) is preserved because `scale` still produces a fresh `RtRecipe` value; the re-execution happens entirely inside the new value's construction, not by mutating the original.
 
 ---
 

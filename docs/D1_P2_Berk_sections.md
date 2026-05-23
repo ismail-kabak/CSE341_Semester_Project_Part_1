@@ -122,15 +122,22 @@ Let `S` be the state — an environment mapping names to values, where values in
 ### `scale(r, by: k)` — functional rescaling of a recipe
 
 ```
-  ⟨r, S⟩ → R = RtRecipe(name, n, ingredients, steps)
+  ⟨r, S⟩ → R = RtRecipe(name, n, ingredients, step_decls, captured_params, …)
   ⟨k, S⟩ → κ : (int | float)
   κ > 0
   n' = int(round(n * κ))
   ∀ (id, ing) ∈ ingredients: ing' = scale_ingredient(ing, κ)
   ingredients' = { id ↦ ing' | (id, ing) ∈ ingredients }
+  S_scaled = globals.child()                                  (* fresh env *)
+  ∀ (p, v) ∈ captured_params:
+      S_scaled[p] = n'  if v was the original servings value
+                  v   otherwise
+  ∀ (id, ing') ∈ ingredients': S_scaled[id] = ing'
+  ∀ step_decl ∈ step_decls:
+      steps'_i = exec_step(step_decl, S_scaled.child())
   ──────────────────────────────────────────────────────────────────
   ⟨scale(r, by: k), S⟩ →
-      RtRecipe(name, n', ingredients', steps)
+      RtRecipe(name, n', ingredients', steps', step_decls, captured_params, …)
 
   where:
     scale_ingredient(ing, κ) =
@@ -142,11 +149,15 @@ Let `S` be the state — an environment mapping names to values, where values in
     scale_ingredient(ing, κ) =
       ing  (* unchanged *)
         if ing.q = RtPinch
+
+    exec_step(step_decl, env) =
+      RtStep(description, eval(at_expr, env), eval(for_expr, env),
+             accumulate_actions(body, env))
 ```
 
 Side conditions: if `κ ≤ 0` the rule does not apply; the interpreter raises `RuntimeRecipixError`. Banker's rounding (`int(round(...))`) is the locked rule from plan §2.6 — it is unbiased on half-way cases, where truncation toward zero biases down (`scale(r-of-3, by: 0.5)` would yield 1 serving under truncation but 2 under banker's rounding) and ceiling biases up. The unchanged-Temperature-and-Duration rule reflects that temperature and duration are intensive quantities in the physical sense (a recipe at 180 °C does not become 270 °C when doubled).
 
-The `steps` field is shared with the original recipe value — not re-evaluated against a scaled binding. This is a deliberate consequence of recipe instantiation eagerly evaluating step bodies into an action list at `RecipeCall` time: the step bodies were already evaluated with the original `servings` value before `scale` saw the recipe value. Scaling rewrites header fields (`servings`, `ingredients`) but does not re-enter the step bodies; this preserves the referential transparency of `scale` (decision #25: every Recipix expression is referentially transparent in v1, and re-entering step bodies under a scaled binding would mean `scale(R, by: 1)` is observably different from `R` if the original instantiation produced a side-effecting render). The visible consequence in sample 1 is that `scale(pancakes(servings: 4), by: 1.5)` renders "serves 6" with four `pour/flip` cycles in the step body, because the `repeat servings times` was bound to 4 at the original instantiation. This is consistent with spec §9 ("multiplies the servings field by the scalar") and with the v1 design goal of functional, side-effect-free domain operators.
+**Step bodies are re-executed under the scaled `servings` binding.** Recipe instantiation captures the original parameter map (`captured_params`) and the unevaluated step declarations (`step_decls`) on the `RtRecipe` value. When `scale` runs, it builds a fresh evaluation environment in which the `servings` parameter is rebound to `n'` (and all ingredient bindings are rebound to the scaled values), then re-executes each step declaration's body against that environment. The visible consequence in sample 1 is that `scale(pancakes(servings: 4), by: 1.5)` renders "serves 6" with **six `pour/flip` cycles** in the step body — `repeat servings times` rebinds to 6 in the scaled evaluation, not 4. This matches the user-intuitive reading of `scale`: doubling a recipe doubles the work, not just the header. Spec §9 (*"multiplies the servings field by the scalar"*) is silent on loop bodies, but the re-execution rule is the consistent reading once you accept that `servings` is the controlling parameter for any step-body iteration referring to it. Referential transparency (decision #25) is preserved because `scale` still produces a fresh `RtRecipe` value without mutating the original — the re-execution happens entirely inside the new value's construction. `captured_params` and `step_decls` are auxiliary fields of `RtRecipe` introduced specifically to support this re-execution; they are not visible to the user and do not affect equivalence (decision #10: name equivalence for `Recipe`).
 
 ### `foreach x in <list_expr> { <body> }` — homogeneous list iteration
 

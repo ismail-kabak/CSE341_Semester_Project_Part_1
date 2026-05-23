@@ -642,6 +642,8 @@ class Interpreter:
 
         new_ings = dict(recipe.ingredients)
         new_ings[original_name] = RtIngredient(name=replacement_name, quantity=new_q)
+        if replacement_name != original_name:
+            new_ings.pop(replacement_name, None)
 
         return RtRecipe(
             name=recipe.name,
