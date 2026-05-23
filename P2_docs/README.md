@@ -7,11 +7,14 @@ of the Recipix Part 2 submission:
 |---|---|---|---|
 | `D1/` | D1 — Design Specification (Part 2)         | `1901042652-210104004132_D1_P2.pdf` | one partner (joint) |
 | `D3/` | D3 — Test Report (Part 2)                  | `1901042652-210104004132_D3_P2.pdf` | one partner (joint) |
-| `D4/` | D4 — AI Usage Journal (Part 2 continuation, Berk) | `210104004132_D4_P2.pdf`        | Berk individually   |
+| `D4/` | D4 — AI Usage Journal (Berk's continuation) | `210104004132_D4_P2.pdf`           | Berk individually   |
+| `D5/` | D5 — Retrospective + Self-Assessment (Berk) | `210104004132_D5_P2.pdf`           | Berk individually   |
+| `D6/` | D6 — Contribution Report (joint)            | `1901042652-210104004132_D6_P2.pdf` | one partner (joint) |
 
-D1 and D3 are joint pair deliverables. D4 is per-student — only Berk's
-journal is in this folder (İsmail submits his own from his own
-account).
+D1, D3, and D6 are joint pair deliverables. D4 and D5 are per-student —
+only Berk's copies are in this folder (İsmail submits his own from his
+own account). The D2 source zip lives separately at
+`../submissions/1901042652-210104004132_D2_P2.zip`.
 
 ## Build instructions
 
@@ -22,18 +25,12 @@ modern distribution with `lmodern`, `microtype`, `listings`, `geometry`,
 `enumitem`, `xcolor`, and `babel`) builds them with a single pass:
 
 ```bash
-# From the repo root:
-cd P2_docs/D1
-pdflatex D1.tex
-pdflatex D1.tex   # second pass for cross-references / TOC if added
-
-cd ../D3
-pdflatex D3.tex
-pdflatex D3.tex
-
-cd ../D4
-pdflatex D4.tex
-pdflatex D4.tex
+# From the repo root, build each PDF (two passes for cross-references):
+cd P2_docs/D1 && pdflatex D1.tex && pdflatex D1.tex
+cd ../D3     && pdflatex D3.tex && pdflatex D3.tex
+cd ../D4     && pdflatex D4.tex && pdflatex D4.tex
+cd ../D5     && pdflatex D5.tex && pdflatex D5.tex
+cd ../D6     && pdflatex D6.tex && pdflatex D6.tex
 ```
 
 Or use `latexmk` for automatic pass management:
@@ -42,6 +39,8 @@ Or use `latexmk` for automatic pass management:
 cd P2_docs/D1 && latexmk -pdf D1.tex
 cd ../D3     && latexmk -pdf D3.tex
 cd ../D4     && latexmk -pdf D4.tex
+cd ../D5     && latexmk -pdf D5.tex
+cd ../D6     && latexmk -pdf D6.tex
 ```
 
 After the build, rename the output PDFs to the submission filenames

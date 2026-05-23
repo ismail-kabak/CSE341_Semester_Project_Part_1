@@ -1,0 +1,162 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black,
+}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{CSE 341 -- Recipix v4.1}
+\fancyhead[R]{D6 (Part 2)}
+\fancyfoot[C]{\thepage}
+
+\title{\textbf{D6 -- Contribution Report (Part 2)} \\
+       \large Recipix v4.1 -- CSE 341 Semester Project (joint)}
+\author{Berk Hakan \"Oge (210104004132) \and \.Ismail Kabak (1901042652)}
+\date{23 May 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+\section{Per-deliverable ownership}
+
+The table below lists every Part~2 section / component and the partner
+who owned it. The reviewer column names the partner who read and
+sanity-checked that section before final submission. Where two
+partners contributed substantively to a single section, both names
+appear.
+
+\renewcommand{\arraystretch}{1.15}
+
+\noindent\textbf{D1 -- Design Specification (joint PDF).}
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.42\textwidth}p{0.20\textwidth}p{0.20\textwidth}@{}}
+\toprule
+\textbf{Section} & \textbf{Owner} & \textbf{Reviewer} \\
+\midrule
+\S4.1 Language Overview                          & İsmail            & Berk   \\
+\S4.2 Lexical Structure                          & İsmail            & Berk   \\
+\S4.3 Syntax (EBNF)                              & Berk              & İsmail \\
+\S4.4 Semantics (\texttt{scale}, \texttt{foreach}) & Berk             & İsmail \\
+\S4.5 Type System                                & İsmail            & Berk   \\
+\S4.6 Names / Binding / Scope / Lifetime         & İsmail            & Berk   \\
+\S4.7 Expressions \& Assignment                  & Berk              & İsmail \\
+\S4.8 Design Rationale (split)                   & both              & both   \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{D2 -- Implementation (joint zip).}
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.42\textwidth}p{0.20\textwidth}p{0.20\textwidth}@{}}
+\toprule
+\textbf{Component} & \textbf{Owner} & \textbf{Reviewer} \\
+\midrule
+\texttt{src/lexer.py}                            & İsmail (P1)       & Berk   \\
+\texttt{src/recipix/parser.py}                   & Berk (P1)         & İsmail \\
+\texttt{src/recipix/ast\_nodes.py}               & Berk (P1)         & İsmail \\
+\texttt{src/recipix/tokens.py} (contract)        & joint             & joint  \\
+\texttt{src/recipix/environment.py}              & Berk (drafted)    & İsmail \\
+\texttt{src/recipix/runtime\_values.py}          & Berk (drafted)    & İsmail \\
+\texttt{src/recipix/errors.py}                   & Berk              & İsmail \\
+\texttt{src/recipix/typechecker.py}              & İsmail            & Berk   \\
+\texttt{src/recipix/interpreter.py}              & Berk              & İsmail \\
+\texttt{src/recipix/rendering.py}                & Berk              & İsmail \\
+\texttt{src/recipix/\_\_main\_\_.py} (CLI)       & Berk              & İsmail \\
+\texttt{src/tests/test\_parser.py} (48 tests)    & Berk (P1)         & İsmail \\
+\texttt{src/tests/test\_interpreter.py} (36+)    & Berk              & İsmail \\
+\texttt{src/tests/test\_regression.py} (harness) & Berk (built), İsmail (updates) & both \\
+\texttt{src/tests/regression/} fixtures (\textasciitilde 70 files) & joint & joint \\
+README, build / run instructions                 & Berk              & İsmail \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{D3 -- Test Report (joint PDF).}
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.42\textwidth}p{0.20\textwidth}p{0.20\textwidth}@{}}
+\toprule
+\textbf{Program / section} & \textbf{Owner} & \textbf{Reviewer} \\
+\midrule
+\S1 Overview                                     & Berk              & İsmail \\
+\S2 Sample 1 (Pancakes) + discussion             & Berk              & İsmail \\
+\S3 Sample 2 (Smoothie) + discussion             & Berk              & İsmail \\
+\S4 Sample 3 (type error) + trace + discussion   & İsmail (trace), Berk (discussion) & both \\
+\S5 Parse-error fixtures table                   & Berk (P1 carryover) & İsmail \\
+\S6 Summary                                      & Berk              & İsmail \\
+LaTeX assembly                                   & Berk              & İsmail \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{D5 -- Retrospective \& Self-Assessment (individual).}
+Each partner writes and uploads their own. Berk's D5 is included in
+this submission as \texttt{210104004132\_D5\_P2.pdf}; İsmail's is
+uploaded separately from his own account.
+
+\section{Workload split}
+
+The intended division for Part~2 was \emph{Berk = interpreter +
+rendering + Part-1 parser carryover}, \emph{İsmail = type checker +
+Part-1 lexer carryover}, with the cross-cutting shared modules
+(\texttt{environment.py}, \texttt{runtime\_values.py},
+\texttt{errors.py}) drafted by Berk and reviewed by İsmail per the
+plan~\S2.5 / \S2.6 contract.
+
+The final split is approximately \textbf{Berk 60\% / İsmail 40\%}.
+Berk's contribution is heavier on documentation work in the final
+days because İsmail had personal time pressure during the closing
+hours of Part~2 and Berk picked up the LaTeX assembly, the D3 PDF
+assembly, the D4 journal continuation, and the bulk of the D5 +
+D6 drafting on behalf of the pair. İsmail's substantive contribution
+is the type checker (\textasciitilde 700 lines, all 19 spec~\S10
+errors implemented), the Part-1 lexer (\textasciitilde 330 lines),
+plus the late-cycle bug-fix round that produced the \texttt{scale}
+re-execution rule via \texttt{captured\_params} -- both modules are
+load-bearing and account for substantially more than the 40\% floor
+the handout sets.
+
+Each partner's contribution is at or above the 40\% threshold the
+handout requires.
+
+\section{Signatures}
+
+This contribution report is acknowledged by both partners.
+
+\vspace{1.5em}
+\noindent\begin{tabular}{@{}p{0.45\textwidth}@{\hspace{0.05\textwidth}}p{0.45\textwidth}@{}}
+\rule{0.45\textwidth}{0.4pt} & \rule{0.45\textwidth}{0.4pt} \\
+Berk Hakan \"Oge (210104004132) & \.Ismail Kabak (1901042652) \\
+\end{tabular}
+
+\vspace{2em}
+\noindent\small\emph{Submitted 23 May 2026 as the joint D6 deliverable
+for the Recipix Part~2 submission. Companion documents: D1 (design
+spec), D2 (interpreter source zip), D3 (test report), and the two
+individual D4 / D5 PDFs.}
+
+\end{document}
