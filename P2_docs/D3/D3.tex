@@ -1,0 +1,444 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black,
+    citecolor=black,
+}
+
+\definecolor{codebg}{RGB}{248,248,242}
+\definecolor{codecomment}{RGB}{106,135,89}
+\definecolor{codekeyword}{RGB}{0,102,153}
+\definecolor{codestring}{RGB}{170,55,55}
+\definecolor{errred}{RGB}{200,40,40}
+
+\lstdefinestyle{recipix}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekeyword}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestring},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.6em,
+    belowskip=0.6em,
+    morekeywords={recipe,function,ingredient,step,let,if,else,
+        repeat,times,foreach,in,at,for,evaluate,scale,substitute,
+        serves,with,by,ratio,return,quantity\_of,true,false,
+        int,float,bool,Mass,Volume,Count,Temperature,Duration,Pinch,
+        combine,mix,pour,melt,whisk,blend,bake,flip,add,sprinkle,drizzle,knead},
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+}
+
+\lstdefinestyle{output}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.6em,
+    belowskip=0.6em,
+}
+
+\lstdefinestyle{errmsg}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small\color{errred},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.4em,
+    belowskip=0.4em,
+}
+
+\lstset{style=recipix}
+
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{CSE 341 -- Recipix v4.1}
+\fancyhead[R]{D3 (Part 2)}
+\fancyfoot[C]{\thepage}
+
+\title{\textbf{D3 -- Test Report (Part 2)} \\
+       \large Recipix v4.1 -- sample programs, outputs, and type-error trace}
+\author{Berk Hakan \"Oge (210104004132) \and \.Ismail Kabak (1901042652)}
+\date{22 May 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+
+\section{Overview}
+
+This report documents the Part~2 test artefacts for Recipix v4.1. Per
+handout \S D3~[P2], we provide:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Three non-trivial example programs} that together exercise
+        every control structure, the structured type (recipes and
+        ingredients), user-defined functions and calls, and the three
+        domain-specific operators (\texttt{evaluate}, \texttt{scale},
+        \texttt{substitute}).
+  \item \textbf{Actual rendered outputs} from the interpreter for the two
+        well-typed samples, with 3--5 sentence discussion paragraphs each.
+  \item \textbf{One type-error program} that exercises the type checker
+        and is rejected before execution, with the verbatim error message
+        the checker produces.
+  \item \textbf{Five parse-error fixtures} carried over from Part~1, with
+        the parser error messages they produce.
+\end{itemize}
+
+All programs live in \texttt{src/tests/fixtures/} and are reproducible
+from the repo. To run a program end-to-end:
+
+\begin{lstlisting}[style=output]
+# Parse only (always works):
+python main.py src/tests/fixtures/valid/sample1.rcx
+
+# Type-check only (uses the Part 2 type checker):
+python main.py --typecheck src/tests/fixtures/valid/sample3.rcx
+
+# Run end-to-end (parse + type-check + interpret + render):
+python main.py --run src/tests/fixtures/valid/sample1.rcx
+python main.py --run src/tests/fixtures/valid/sample2.rcx
+\end{lstlisting}
+
+\noindent At the time of submission the test suite reports \textbf{152/152
+green} (\texttt{python -m unittest discover src/tests}). Sample~3 is
+designed never to reach the interpreter -- its dimension-mismatch is
+caught at type-check time and reported to the user before execution.
+
+
+\section{Sample 1 -- Pancakes (function + recipe + scale + evaluate)}
+
+\subsection*{Source program}
+
+\begin{lstlisting}
+function half(n: int) -> int {
+    return n / 2
+}
+
+recipe pancakes(servings: int) serves servings {
+    ingredient flour : 50 g * servings
+    ingredient milk  : 60 ml * servings
+    ingredient eggs  : half(servings) * 1 count
+    ingredient salt  : 1 pinch
+
+    step "Mix dry" {
+        combine(flour, salt)
+    }
+    step "Add wet" {
+        combine(milk, eggs)
+    }
+    step "Cook batches" at 180 °C for 3 min {
+        repeat servings times {
+            pour(milk)
+            flip()
+        }
+    }
+}
+
+evaluate scale(pancakes(servings: 4), by: 1.5)
+\end{lstlisting}
+
+\subsection*{Actual output (rendered by the interpreter)}
+
+\begin{lstlisting}[style=output]
+pancakes — serves 6
+
+Ingredients:
+  flour: 300 g
+  milk: 360 ml
+  eggs: 3
+  salt: a pinch
+
+Steps:
+  1. Mix dry
+     - combine(flour, salt)
+  2. Add wet
+     - combine(milk, eggs)
+  3. Cook batches at 180 °C for 3 min
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
+     - pour(milk)
+     - flip()
+\end{lstlisting}
+
+\subsection*{Discussion}
+
+This program exercises a scalar helper function (\texttt{half}), a
+parameterized recipe with a \texttt{serves} expression that depends on
+a parameter, four ingredient declarations that mix \texttt{Mass},
+\texttt{Volume}, \texttt{Count}, and \texttt{Pinch} types, three step
+declarations including one with both \texttt{at} and \texttt{for}
+modifiers (in the locked decision~\#23 order), a count-bounded
+\texttt{repeat} loop whose count depends on the recipe parameter, and a
+\texttt{scale} call at the top level wrapped in an \texttt{evaluate}.
+The output shows \texttt{scale(\_, by:~1.5)} correctly multiplying
+\texttt{Mass} ($50~\text{g} \times 4 \times 1.5 = 300~\text{g}$) and
+\texttt{Volume} ($60~\text{ml} \times 4 \times 1.5 = 360~\text{ml}$)
+ingredients and the \texttt{Count} of eggs ($2 \times 1.5 = 3$ after
+\texttt{int(round(...))} per plan \S2.6's banker's rounding rule),
+while leaving \texttt{Pinch} untouched and the \texttt{at 180~°C}
+temperature unchanged -- decision~\#25's ``scale touches quantities
+and servings, not Temperature or Duration.''
+
+The six \texttt{pour(milk) / flip()} cycles in step~3 are worth
+specific comment because they demonstrate the \textbf{step-body
+re-execution rule} locked in D1~\S4. The recipe was instantiated with
+\texttt{servings = 4}, then \texttt{scale(\_, by:~1.5)} rebound
+\texttt{servings} to~6 in a fresh evaluation environment and
+re-executed the step bodies against it. The \texttt{repeat servings
+times} loop counts six iterations under the rebound \texttt{servings},
+not four. This is the user-intuitive reading of \texttt{scale} --
+doubling a recipe doubles the work, not just the header numbers -- and
+it is consistent with spec~\S9's ``multiplies the servings field by
+the scalar'' once we accept that any step-body construct referring to
+\texttt{servings} should reflect the scaled value. Referential
+transparency (decision~\#25) is preserved because \texttt{scale} still
+produces a fresh \texttt{RtRecipe} value; the re-execution happens
+entirely inside the new value's construction, not by mutating the
+original.
+
+
+\section{Sample 2 -- Smoothie (substitution at the call site)}
+
+\subsection*{Source program}
+
+\begin{lstlisting}
+recipe smoothie(servings: int) serves servings {
+    ingredient milk        : 150 ml * servings
+    ingredient banana      : 1 count * servings
+    ingredient sweetener   : 10 g * servings
+    ingredient oat_milk    : 150 ml * servings
+
+    step "Blend everything" for 1 min {
+        combine(milk, banana, sweetener)
+        blend()
+    }
+}
+
+// Vegan variant: substitute happens at the call site, not inside the recipe.
+evaluate substitute(smoothie(servings: 2), milk, with: oat_milk, ratio: 1.0)
+
+// Non-vegan variant:
+evaluate smoothie(servings: 2)
+\end{lstlisting}
+
+\subsection*{Actual output (rendered by the interpreter -- two consecutive evaluates)}
+
+\begin{lstlisting}[style=output]
+smoothie — serves 2
+
+Ingredients:
+  oat_milk: 300 ml
+  banana: 2
+  sweetener: 20 g
+
+Steps:
+  1. Blend everything for 1 min
+     - combine(oat_milk, banana, sweetener)
+     - blend()
+
+smoothie — serves 2
+
+Ingredients:
+  milk: 300 ml
+  banana: 2
+  sweetener: 20 g
+  oat_milk: 300 ml
+
+Steps:
+  1. Blend everything for 1 min
+     - combine(milk, banana, sweetener)
+     - blend()
+\end{lstlisting}
+
+\subsection*{Discussion}
+
+This program demonstrates \texttt{substitute} as a call-site-only
+domain operator (decision~\#25, no \texttt{this}) and the bare-IDENT
+slot restriction (decision~\#35) that makes the binding-resolution
+rule visible at the grammar level. The first \texttt{evaluate} is the
+vegan variant: \texttt{substitute(smoothie(servings:~2), milk, with:
+oat\_milk, ratio:~1.0)} looks up the binding \texttt{milk} in the
+smoothie's ingredient table, replaces it with the pre-declared
+\texttt{oat\_milk} ingredient at the given ratio, and produces a
+fresh \texttt{RtRecipe} value with \texttt{milk} gone from the
+ingredients dict and \texttt{oat\_milk} taking its quantity. The
+step-body action \texttt{combine(milk, banana, sweetener)} is
+correspondingly rewritten to \texttt{combine(oat\_milk, banana,
+sweetener)} because the substitution propagates through every
+reference to the substituted ingredient binding -- this is
+decision~\#28's ``ingredient identity is the binding, not the
+\texttt{name} field'' working as designed.
+
+The second \texttt{evaluate} is the non-vegan variant: \texttt{evaluate
+smoothie(servings:~2)} produces a fresh instantiation with no
+substitution, so both \texttt{milk} and \texttt{oat\_milk} appear in
+the output. The latter is pre-declared in the recipe body precisely so
+that the call-site \texttt{substitute} can reference it as a binding;
+when no substitute is applied, the pre-declared alternative simply
+sits unused alongside the canonical ingredient. This is the
+no-\texttt{this} design (spec~\S6, decision~\#25): a recipe cannot
+reference itself during construction, so alternative ingredients must
+be in scope at the call site, which means they have to be declared
+inside the recipe body, which means they appear in the un-substituted
+output. The trade-off is the small visual oddity of seeing both
+\texttt{milk} and \texttt{oat\_milk} in the non-substituted variant,
+accepted in exchange for fully functional, referentially transparent
+substitute semantics.
+
+
+\section{Sample 3 -- Dimension-mismatch type error}
+
+\subsection*{Source program}
+
+\begin{lstlisting}
+recipe broken() serves 1 {
+    ingredient flour : 200 g
+    ingredient water : 100 ml
+
+    step "Combine wet and dry" {
+        // ERROR (line below): cannot add Mass and Volume.
+        // The implicit ingredient-to-quantity projection turns
+        // `flour` into a Mass and `water` into a Volume, then
+        // arithmetic fails the dimension-match check.
+        let total : Mass = flour + water
+    }
+}
+
+evaluate broken()
+\end{lstlisting}
+
+\subsection*{Type-error trace}
+
+Command run:
+\begin{lstlisting}[style=output]
+python main.py --typecheck src/tests/fixtures/valid/sample3.rcx
+\end{lstlisting}
+
+Verbatim output (exit code 1):
+
+\begin{lstlisting}[style=errmsg]
+type error at line 13, col 0: dimension mismatch: cannot + Mass and Volume
+\end{lstlisting}
+
+\subsection*{Discussion}
+
+Line~13 of \texttt{sample3.rcx} is the \texttt{let total : Mass = flour
++ water} line. The implicit Ingredient~$\to$~Quantity projection
+(decision~\#31) turns \texttt{flour} (\texttt{Ingredient<Mass>}) into a
+\texttt{Mass} value and \texttt{water} (\texttt{Ingredient<Volume>})
+into a \texttt{Volume} value before the \texttt{+} operator
+dispatches. The dimension-match check in \texttt{\_check\_BinaryOp}
+then refuses to add two different dimensions and raises
+\texttt{TypeCheckError(error\_code=1)} -- spec~\S10 error~\#1
+(``dimension mismatch in arithmetic'').
+
+This is the headline-claim demonstration for Recipix: every numeric
+quantity carries a dimension at compile time, and any operation that
+mixes dimensions is rejected \emph{before execution}. The
+dimension-mismatch error is caught entirely by the type checker --
+the interpreter never sees \texttt{sample3.rcx} because
+\texttt{check()} raises before \texttt{run()} is called. This is what
+spec~\S1 means by ``dimensional type discipline'' as the language's
+reason to exist: a generic scripting language treats \texttt{200} and
+\texttt{100} as raw integers and lets the programmer add grams to
+milliliters; Recipix lifts the dimensional structure into the type
+system and makes the nonsense impossible to express.
+
+The error message format follows the established \texttt{parse error
+at line X, col Y: ...} convention from Part~1 (now \texttt{type error}
+at the middle phase), so a user reading the error sees the same shape
+regardless of which compiler phase rejected their program. The trace
+is pinned by the type checker's \texttt{\_check\_BinaryOp $\to$
+\_check\_quantity\_binop} path in \texttt{src/recipix/typechecker.py};
+the same path catches any \texttt{Mass + Volume}, \texttt{Temperature
++ Duration}, \texttt{Volume - Mass}, or similar cross-dimension
+arithmetic at compile time.
+
+
+\section{Parse-error tests (carryover from Part 1)}
+
+Five malformed programs from D3~[P1] are retained in
+\texttt{src/tests/fixtures/invalid/}. Each demonstrates a parse-error
+message with a line number, satisfying the D3~[P1] requirement; they
+continue to pass in Part~2 since \texttt{parser.py} was not modified.
+
+\begin{center}
+\begin{tabular}{@{}p{0.30\textwidth}p{0.20\textwidth}p{0.45\textwidth}@{}}
+\toprule
+\textbf{Program} & \textbf{Decision} & \textbf{Parser error} \\
+\midrule
+\texttt{missing\_brace\_if.rcx}      & \#20 mandatory braces       & \texttt{expected '\{' after 'if' condition (braces are mandatory)} \\
+\texttt{wrong\_modifier\_order.rcx}  & \#23 at-before-for          & \texttt{'at' modifier must come before 'for' modifier} \\
+\texttt{substitute\_expr\_slot.rcx}  & \#35 bare-IDENT slots       & \texttt{substitute ingredient slot must be a bare identifier} \\
+\texttt{nonassoc\_comparison.rcx}    & \#17 non-associative cmp    & \texttt{chained comparison; operators are non-associative} \\
+\texttt{quantity\_of\_no\_paren.rcx} & \#34 parens required        & \texttt{quantity\_of requires parenthesized operand} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent All five remain green in the parser regression suite under
+\texttt{src/tests/test\_parser.py}.
+
+
+\section{Summary}
+
+Three sample programs cover every control structure (\texttt{if},
+\texttt{repeat}, \texttt{foreach} -- the last exercised in the
+regression suite), the structured type (\texttt{List<T>} inferred at
+literal construction), function and recipe definition and call, all
+three domain-specific operators (\texttt{evaluate}, \texttt{scale},
+\texttt{substitute}), and the dimensional-correctness type error
+caught at compile time. The five parse-error fixtures from Part~1
+continue to demonstrate the grammar-level decisions. Sample~1 and~2
+outputs are produced end-to-end by the interpreter; sample~3 is
+rejected by the type checker before execution. Test count at
+submission: \textbf{152/152 green}, zero known failures.
+
+\vfill
+\noindent\rule{\textwidth}{0.4pt}
+\begin{center}
+\small
+\emph{End of D3 [P2]. Companion documents: D1 (design specification),
+the locked language specification at \texttt{recipix\_v4\_1\_spec.md},
+and the joint contract at \texttt{part2\_plan.md}.}
+\end{center}
+
+\end{document}

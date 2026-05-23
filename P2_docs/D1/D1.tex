@@ -1,0 +1,775 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue!60!black,
+    citecolor=black,
+}
+
+% Code-block colours
+\definecolor{codebg}{RGB}{248,248,242}
+\definecolor{codecomment}{RGB}{106,135,89}
+\definecolor{codekeyword}{RGB}{0,102,153}
+\definecolor{codestring}{RGB}{170,55,55}
+
+\lstdefinestyle{recipix}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekeyword}\bfseries,
+    commentstyle=\color{codecomment}\itshape,
+    stringstyle=\color{codestring},
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    framerule=0pt,
+    framesep=4pt,
+    aboveskip=0.6em,
+    belowskip=0.6em,
+    morekeywords={recipe,function,ingredient,step,let,if,else,
+        repeat,times,foreach,in,at,for,evaluate,scale,substitute,
+        serves,with,by,ratio,return,quantity\_of,true,false,
+        int,float,bool,Mass,Volume,Count,Temperature,Duration,Pinch,
+        combine,mix,pour,melt,whisk,blend,bake,flip,add,sprinkle,drizzle,knead},
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+}
+\lstset{style=recipix}
+
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{CSE 341 -- Recipix v4.1}
+\fancyhead[R]{D1 (Part 2)}
+\fancyfoot[C]{\thepage}
+
+\title{\textbf{D1 -- Design Specification (Part 2)} \\
+       \large Recipix v4.1 -- a domain-specific language \\
+              for parameterized recipes with dimensional types}
+\author{Berk Hakan \"Oge (210104004132) \and \.Ismail Kabak (1901042652)}
+\date{22 May 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+\section{Language Overview \texttt{[P1, revised]}}
+
+\textbf{Recipix} is a domain-specific language for describing,
+parameterizing, scaling, and substituting recipes. Every ingredient
+quantity carries a dimension (Mass, Volume, Count, Temperature, Duration);
+the type system enforces dimensional correctness at compile time, so
+adding grams to milliliters or substituting a volume for a mass is
+rejected before the program is executed.
+
+A small sample program:
+
+\begin{lstlisting}
+function half(n: int) -> int { return n / 2 }
+
+recipe pancakes(servings: int) serves servings {
+    ingredient flour : 50 g * servings
+    ingredient milk  : 60 ml * servings
+    ingredient eggs  : half(servings) * 1 count
+    ingredient salt  : 1 pinch
+
+    step "Mix dry" { combine(flour, salt) }
+    step "Cook batches" at 180 °C for 3 min {
+        repeat servings times { pour(milk) flip() }
+    }
+}
+
+evaluate scale(pancakes(servings: 4), by: 1.5)
+\end{lstlisting}
+
+\paragraph{Sebesta evaluation criteria (\S1.3).} Recipix prioritizes
+\textbf{reliability} (strong static typing, dimensional discipline,
+no shadowing, single-assignment) and \textbf{writability} for
+domain users (concise recipe declarations, implicit Ingredient~$\to$~Quantity
+projection in arithmetic). It deprioritizes \textbf{cost}: every numeric
+quantity is normalized to base units at run time, and the dimensional
+type system is paid for at compile time. \textbf{Readability} sits between
+reliability and writability: mandatory braces on \texttt{if/else} (decision
+\#20) and the fixed \texttt{at}-before-\texttt{for} step-modifier order
+(decision \#23) trade a small writability cost for a grammar that
+documents the language's design choices.
+
+\medskip
+\noindent\textbf{What makes Recipix a DSL.} Dimensional type discipline
+plus three call-site-only operators (\texttt{evaluate}, \texttt{scale},
+\texttt{substitute}) that produce fresh recipe values without mutation.
+A generic scripting language treats \texttt{200} and \texttt{500} as raw
+numbers and lets the programmer combine them into nonsense; Recipix lifts
+the dimensional structure into the type system, making the nonsense
+impossible to express.
+
+
+\section{Lexical Structure \texttt{[P1, revised]}}
+
+Whitespace separates tokens. Comments start with \texttt{//} and run to
+end-of-line. Identifiers match \texttt{[a-zA-Z\_][a-zA-Z0-9\_]*} (ASCII,
+case-sensitive) and may not collide with the reserved keyword set.
+String literals are UTF-8 encoded; any character except \texttt{"} and
+newline is legal inside the quotes; no escape sequences in v1.
+
+\begin{center}
+\begin{tabular}{@{}lp{0.62\textwidth}@{}}
+\toprule
+\textbf{Category} & \textbf{Pattern / examples} \\
+\midrule
+Identifier        & \texttt{[a-zA-Z\_][a-zA-Z0-9\_]*} \quad e.g.\ \texttt{flour, pancakes, oat\_milk} \\
+Integer literal   & \texttt{[0-9]+}\quad e.g.\ \texttt{0, 42, 200} \\
+Float literal     & \texttt{[0-9]+ "." [0-9]+}\quad e.g.\ \texttt{0.5, 1.5, 3.14} \\
+String literal    & \verb|"| \dots\ (UTF-8, no escapes) \verb|"| \\
+Boolean literal   & \texttt{true} $\mid$ \texttt{false} \\
+Reserved keyword  & \texttt{recipe function ingredient step let if else repeat times}
+                    \texttt{foreach in at for evaluate scale substitute}
+                    \texttt{serves with by ratio return quantity\_of} \\
+Type-name keyword & \texttt{int float bool Mass Volume Count Temperature Duration Pinch} \\
+Action-verb keyword
+                  & \texttt{combine mix pour melt whisk blend bake flip add sprinkle drizzle knead} \\
+Unit keyword      & \texttt{mg g kg ml l tsp tbsp cup °C min hr count pinch} \\
+Operator          & \texttt{+ - * /} \quad \texttt{== != < <= > >=} \quad \texttt{\&\& || !} \quad \texttt{=} \\
+Separator         & \texttt{( ) \{ \} [ ] , : ->} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Two-token quantity literals (decision \#7).} A quantity such
+as \texttt{200 g} is \emph{two tokens}: an \texttt{INT\_LIT} or
+\texttt{FLOAT\_LIT} followed by a \texttt{UNIT\_KW}. Only whitespace and
+\texttt{//}-line comments may appear between them. Writing
+\texttt{200g} (no separator) is a lexical error. The two-token form
+keeps the lexer simple and lets the parser glue \texttt{NUMBER UNIT}
+into a \texttt{QuantityLit} AST node at one production. The \texttt{°C}
+token is a single multi-character \texttt{UNIT\_KW}; the degree symbol
+may not appear standalone.
+
+
+\section{Syntax \texttt{[P1, revised]}}
+
+The complete grammar is summarized below. Productions are unambiguous on
+the implemented subset; non-trivial design choices visible at the grammar
+level are annotated.
+
+\begin{lstlisting}
+(* Top-level program *)
+<program>         ::= { <top_decl> }
+<top_decl>        ::= <recipe_decl> | <function_decl> | <eval_stmt>
+
+(* Recipe declaration *)
+<recipe_decl>     ::= "recipe" IDENT "(" [ <params> ] ")"
+                      "serves" <expr> <block>
+<params>          ::= IDENT ":" <type> { "," IDENT ":" <type> }
+<block>           ::= "{" { <ingredient_decl> | <step_decl> | <stmt> } "}"
+
+(* Function declaration *)
+<function_decl>   ::= "function" IDENT "(" [ <params> ] ")"
+                      "->" <type>
+                      "{" { <stmt> } "return" <expr> "}"
+                      (* error #19: single return at end, enforced by checker *)
+
+(* Ingredient and step declarations *)
+<ingredient_decl> ::= "ingredient" IDENT ":" <expr>
+<step_decl>       ::= "step" STRING_LIT [ "at" <expr> ] [ "for" <expr> ]
+                      "{" { <step_action> } "}"
+                      (* decision #23: 'at' before 'for', each at most once *)
+
+(* Statements *)
+<stmt>            ::= <let_stmt> | <if_stmt> | <repeat_stmt>
+                    | <foreach_stmt> | <action_stmt>
+<let_stmt>        ::= "let" IDENT ":" <type> "=" <expr>
+<if_stmt>         ::= "if" <expr> <block_stmt> [ "else" <block_stmt> ]
+                      (* decision #20: braces mandatory; dangling-else
+                         eliminated by construction *)
+<block_stmt>      ::= "{" { <stmt> } "}"
+<repeat_stmt>     ::= "repeat" <expr> "times" <block_stmt>
+<foreach_stmt>    ::= "foreach" IDENT "in" <expr> <block_stmt>
+
+(* Domain-specific top-level operation *)
+<eval_stmt>       ::= "evaluate" <expr>
+
+(* Expression precedence ladder - lowest to highest *)
+<expr>            ::= <or_expr>
+<or_expr>         ::= <and_expr> { "||" <and_expr> }
+<and_expr>        ::= <eq_expr>  { "&&" <eq_expr> }
+<eq_expr>         ::= <rel_expr> [ ("==" | "!=") <rel_expr> ]
+<rel_expr>        ::= <add_expr> [ ("<" | "<=" | ">" | ">=") <add_expr> ]
+                      (* decision #17: <eq_expr> and <rel_expr> are
+                         non-associative -- at most one comparison op per
+                         production; chained comparisons are parse errors *)
+<add_expr>        ::= <mul_expr> { ("+" | "-") <mul_expr> }
+<mul_expr>        ::= <unary>    { ("*" | "/") <unary> }
+<unary>           ::= "-" <unary> | "!" <unary>
+                    | "quantity_of" "(" <expr> ")"
+                    | <primary>
+                      (* decision #34: quantity_of is a unary operator,
+                         not a function -- dedicated production at the
+                         unary level, not routed through <primary> *)
+
+(* Primary expressions and call-site operators *)
+<primary>         ::= <int_lit>   [ <unit_kw> ]
+                    | <float_lit> [ <unit_kw> ]
+                      (* decision #7: quantity literals are TWO tokens *)
+                    | <string_lit> | <bool_lit> | IDENT
+                    | <list_lit>
+                    | <function_call> | <recipe_call>
+                    | <scale_call> | <substitute_call>
+                    | "(" <expr> ")"
+<list_lit>        ::= "[" [ <expr> { "," <expr> } ] "]"
+<function_call>   ::= IDENT "(" [ <expr> { "," <expr> } ] ")"
+<recipe_call>     ::= IDENT "(" [ <kwarg> { "," <kwarg> } ] ")"
+<kwarg>           ::= IDENT ":" <expr>
+<scale_call>      ::= "scale" "(" <expr> "," "by" ":" <expr> ")"
+<substitute_call> ::= "substitute" "(" <expr> ","
+                        IDENT ","
+                        "with"  ":" IDENT ","
+                        "ratio" ":" <expr>
+                      ")"
+                      (* decision #35: the two ingredient slots are
+                         bare IDENT terminals, not <expr>; the grammar
+                         makes decision #28 visible at parse level *)
+
+(* Types *)
+<type>            ::= "int" | "float" | "bool"
+                    | "Mass" | "Volume" | "Count"
+                    | "Temperature" | "Duration"
+                    | "Pinch"
+                      (* decision #32: no user-facing type-parameter
+                         syntax; List<T> does not appear in user source *)
+\end{lstlisting}
+
+\noindent The grammar is unambiguous on the subset implemented. Operator
+precedence is encoded by the seven-level expression ladder
+(\texttt{<or\_expr>}~$\downarrow$ \texttt{<unary>}); associativity is
+left for binary arithmetic and logical operators (the \texttt{\{~$\dots$~\}}
+repetition), non-associative for comparisons (the \texttt{[~$\dots$~]}
+optional single operator), and right for unary prefix operators
+(the recursive \texttt{<unary>} in the production).
+
+
+\section{Semantics \texttt{[P2]}}
+
+Two non-trivial constructs are given operational semantics in the style
+of Sebesta \S3.5: \texttt{scale} (a domain-specific operator) and
+\texttt{foreach} (an iterator loop interacting with scope).
+
+Let $S$ be the state -- an environment mapping names to values. Values
+include \texttt{RtQuantity(v, d)} (numeric $v$ in the dimension's base
+unit and dimension tag $d$), \texttt{RtPinch}, \texttt{RtIngredient(name, q)},
+\texttt{RtRecipe(name, servings, ingredients, steps, step\_decls,
+captured\_params, \dots)}, \texttt{RtList(elems, t)}, and the primitives
+\texttt{int}, \texttt{float}, \texttt{bool}. We write
+$\langle e, S \rangle \to v$ for expression evaluation and
+$\langle s, S \rangle \to S'$ for statement execution.
+
+\subsection*{\texttt{scale(r, by: k)} -- functional rescaling}
+
+\begin{lstlisting}
+  <r, S> -> R = RtRecipe(name, n, ingredients, step_decls,
+                         captured_params, ...)
+  <k, S> -> k : (int | float)
+  k > 0
+  n' = int(round(n * k))
+  for each (id, ing) in ingredients:  ing' = scale_ingredient(ing, k)
+  ingredients' = { id -> ing' }
+  S_scaled = globals.child()                       (* fresh env *)
+  for each (p, v) in captured_params:
+      S_scaled[p] = n'   if v was the original servings value
+                   v    otherwise
+  for each (id, ing') in ingredients': S_scaled[id] = ing'
+  for each step_decl in step_decls:
+      steps'_i = exec_step(step_decl, S_scaled.child())
+  --------------------------------------------------------------
+  <scale(r, by: k), S> ->
+      RtRecipe(name, n', ingredients', steps', step_decls,
+               captured_params, ...)
+
+  where:
+    scale_ingredient(ing, k) =
+      RtIngredient(ing.name, RtQuantity(ing.q.v * k, ing.q.d))
+        if ing.q.d in {Mass, Volume, Count}
+    scale_ingredient(ing, k) = ing       (* unchanged *)
+        if ing.q.d in {Temperature, Duration} or ing.q = RtPinch
+
+    exec_step(step_decl, env) =
+      RtStep(description, eval(at_expr, env), eval(for_expr, env),
+             accumulate_actions(body, env))
+\end{lstlisting}
+
+\noindent\textbf{Side conditions.} If $k \leq 0$ the rule does not
+apply; the interpreter raises \texttt{RuntimeRecipixError}. Banker's
+rounding (\texttt{int(round($\cdot$))}) is the rule locked in
+\texttt{part2\_plan.md} \S2.6 -- unbiased on half-way cases, where
+truncation would bias down and ceiling would bias up. Temperature and
+Duration remain unchanged because they are intensive quantities in the
+physical sense: a recipe at \texttt{180~°C} does not become \texttt{270~°C}
+when doubled.
+
+\medskip
+\noindent\textbf{Step bodies are re-executed under the scaled
+\texttt{servings} binding.} Recipe instantiation captures the original
+parameter map (\texttt{captured\_params}) and the unevaluated step
+declarations (\texttt{step\_decls}) on the \texttt{RtRecipe} value. When
+\texttt{scale} runs, it builds a fresh evaluation environment in which
+the \texttt{servings} parameter is rebound to $n'$ (and all ingredient
+bindings are rebound to the scaled values), then re-executes each step
+declaration's body against that environment. The visible consequence in
+sample~1 is that \texttt{scale(pancakes(servings:~4), by:~1.5)} renders
+``serves~6'' with \emph{six} \texttt{pour/flip} cycles in the step
+body -- \texttt{repeat servings times} rebinds to~6 in the scaled
+evaluation, not~4. This matches the user-intuitive reading of
+\texttt{scale}: doubling a recipe doubles the work, not just the header.
+Spec~\S9 (``multiplies the servings field by the scalar'') is silent on
+loop bodies, but re-execution is the consistent reading once
+\texttt{servings} is the controlling parameter for any step-body
+iteration referring to it. Referential transparency (decision \#25)
+is preserved because \texttt{scale} still produces a fresh
+\texttt{RtRecipe} value without mutating the original -- the
+re-execution happens entirely inside the new value's construction.
+
+\subsection*{\texttt{foreach x in <list> \{ body \}} -- homogeneous iteration}
+
+\begin{lstlisting}
+  <list_expr, S> -> RtList(elems, T)
+  S_0 = S
+  for i in [0, |elems|):
+      S'_i = S_i[x -> elems[i]]         (* bind loop var in fresh scope *)
+      <body, S'_i> -> S''_{i+1}
+      S_{i+1} = S''_{i+1} \ {x}         (* loop var goes out of scope *)
+  -----------------------------------------------------------------
+  <foreach x in list_expr { body }, S> -> S_{|elems|}
+\end{lstlisting}
+
+\noindent\textbf{Side conditions.} The list value must have $|\text{elems}| \geq 0$
+(the empty list produces zero iterations). The loop variable $x$ is bound
+to type $T$ in each iteration's fresh scope; the binding goes out of
+scope at the iteration's end. $x$ may not shadow a name visible in $S$
+(decision \#12, enforced by the type checker before this rule fires).
+The list expression is evaluated \emph{once}, before any iteration --
+consistent with decision \#18 (operand evaluation order is left-to-right
+and fully defined). Within a single iteration the loop variable is
+immutable (decision \#13); between iterations it is rebound, which is
+the only rebinding form in Recipix v1.
+
+\medskip
+\noindent\textbf{Design alternative.} A \texttt{while} form would have
+worked, but \texttt{foreach} pairs naturally with Recipix's
+no-mutation discipline: the homogeneous-list invariant is carried in
+the loop variable's type, and the loop is intrinsically bounded by
+the list's size. A \texttt{while} whose condition can change between
+iterations only makes sense in a language with side effects.
+
+
+\section{Type System \texttt{[P2]}}
+
+\paragraph{Primitive types and value sets.}
+Recipix has six families of primitive types:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \texttt{int} -- 64-bit signed integers, value set $[-2^{63}, 2^{63}{-}1]$.
+  \item \texttt{float} -- IEEE 754 doubles.
+  \item \texttt{bool} -- $\{\texttt{true}, \texttt{false}\}$.
+  \item \textbf{Quantity types} (Sebesta \S6.2 terminology: \emph{abstract
+        data types representing physical dimensions}): \texttt{Mass},
+        \texttt{Volume}, \texttt{Count}, \texttt{Temperature},
+        \texttt{Duration}. Internally each is a base-unit numeric value
+        plus a dimension tag; values are normalized to base units
+        (\texttt{g}, \texttt{ml}, \texttt{count}, \texttt{°C},
+        \texttt{min}) at run time.
+  \item \texttt{Pinch} -- a separate primitive (decision \#4). Constructed
+        only by the literal \texttt{1 pinch}; admits no arithmetic, no
+        comparison, no scaling, no substitution-by-ratio. The integer
+        prefix is required syntactically but semantically ignored:
+        \texttt{1 pinch} and \texttt{5 pinch} denote the same value.
+\end{itemize}
+
+\paragraph{Strongly typed (Sebesta \S6.12).} Yes -- strictly. Every operator
+is defined only on matching operand types; every implicit coercion is
+listed below; every type error is caught at compile time (with two
+exceptions noted at the end of this section). The dimensional discipline
+adds a stronger guarantee than a generic strongly-typed language: type
+identity is not only ``these have compatible representations'' but also
+``these denote the same physical dimension.''
+
+\paragraph{Implicit coercion (Sebesta \S7.4).} Two coercions are allowed.
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Within-dimension unit coercion.} Two quantities of the
+        same dimension expressed in different units are interchangeable:
+        \texttt{200 g + 1 kg} evaluates to \texttt{1200 g}. Decision \#9
+        treats this as a representation-level conversion, not a
+        type-level coercion -- the dimension is preserved.
+  \item \textbf{\texttt{int} widens to \texttt{float}} in mixed-mode
+        arithmetic. \texttt{1 + 2.0} yields \texttt{3.0} of type
+        \texttt{float}; \texttt{int} is information-preserving in this
+        direction (every 64-bit int $\leq 2^{53}$ is representable as
+        a double).
+\end{itemize}
+
+\noindent The \emph{narrowing} direction is \emph{never} implicit:
+\texttt{float}~$\to$~\texttt{int} requires an explicit conversion
+(reserved for a v2 \texttt{to\_int} builtin). Cross-dimension coercion
+is rejected at compile time: there is no implicit conversion from
+\texttt{Mass} to \texttt{Volume}, even when the user provides a density.
+
+\paragraph{Type equivalence (Sebesta \S6.14).} A deliberate split
+(decision \#10):
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Structural} for \texttt{Quantity<D>}, \texttt{Ingredient},
+        and \texttt{List<T>}. Two \texttt{Mass} values are the same type
+        regardless of unit; two \texttt{Ingredient} records with the
+        same field shape are the same type; two lists with the same
+        inferred element type are the same type. The reasoning: these
+        types model \emph{data shape} -- the field set carries
+        meaning, and the closed v1 type-name set forecloses the
+        ``hypothetical user-defined record with the same shape''
+        concern that motivates name equivalence in open systems.
+  \item \textbf{Name} for \texttt{Recipe}. A recipe's identity comes
+        from its declaration name, not from its ingredient or step
+        shape. \texttt{pancakes} and \texttt{crepes} that happen to
+        share \texttt{\{flour, milk, eggs\}} are \emph{not}
+        interchangeable in \texttt{scale} or \texttt{substitute};
+        accidental shape collisions at the top of the type lattice
+        would be a worse failure mode than the ergonomic cost of
+        the strict rule.
+\end{itemize}
+
+\paragraph{Structured-type design decisions (Sebesta \S6.5--6.7).}
+The structured type that bears the full design weight is the
+\textbf{list} (decision \#5, decision \#32). Following Sebesta \S6.5:
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Element type:} \texttt{List<T>} is homogeneous -- every
+        element must have the same type $T$. Mixed-dimension lists are a
+        compile-time error (spec \S10 error \#3).
+  \item \textbf{Index range:} not user-facing. Recipix v1 has no
+        \texttt{list[i]} indexing operator; \texttt{foreach} is the only
+        traversal form. The grammar does not admit subscripting.
+  \item \textbf{Subscript-check semantics:} not applicable for the same
+        reason. An empty-list \texttt{foreach} produces zero iterations
+        with no error.
+  \item \textbf{Static vs.\ dynamic:} list type is \emph{inferred} at
+        literal construction and at \texttt{foreach} loop entry --
+        users do not write \texttt{List<T>} annotations in source code
+        (decision \#32). Lists are dynamic in length but static in
+        element type.
+\end{itemize}
+
+\noindent The \texttt{Ingredient} record (decision \#5) is a two-field
+structural type with \texttt{name : string-label} and
+\texttt{quantity : Quantity<D> | Pinch}. Its identity in program semantics
+is the symbol-table binding (decision \#28), not the \texttt{name} field's
+contents -- which is what makes \texttt{substitute(r, flour, with: oat\_milk,
+ratio: 1.0)} a binding-resolution operation rather than a string
+match. The bare-IDENT restriction on the substitute slots (decision
+\#35) makes this visible at the grammar level: the slots are
+\texttt{IDENT} terminals, not \texttt{<expr>}, so the parser refuses
+\texttt{substitute(r, flour + salt, with: $\dots$)} outright.
+
+\paragraph{Two exceptions to ``catches every type error at compile
+time.''} (a) Negative quantities -- the unary \texttt{-} operator
+syntactically applies to quantities and the interpreter accepts negative
+quantity values, but the type checker does not flag them in v1
+(spec \S3, line on unary minus). (b) Inside an empty list literal
+\texttt{[]} the inferred element type is \texttt{List<?>}, which the
+checker handles defensively but does not yet integrate with the
+\texttt{foreach} loop-type inference. Both are deliberately scoped out
+of v1 and named in the D5 retrospective.
+
+
+\section{Names, Binding, Scope, Lifetime \texttt{[P1, revised]}}
+
+\paragraph{Legal identifiers.} Match \texttt{[a-zA-Z\_][a-zA-Z0-9\_]*},
+ASCII only, case-sensitive. Identifiers must not collide with reserved
+keywords, type-name keywords, action-verb keywords, or unit keywords.
+There are no hyphens in identifiers (the lexer treats \texttt{-} as the
+arithmetic operator).
+
+\paragraph{Bindings: compile time vs.\ run time (Sebesta \S5).}
+
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Binding} & \textbf{Compile time} & \textbf{Run time} \\
+\midrule
+Recipe declarations (name and signature)        & \checkmark  & \\
+Function declarations (name and signature)      & \checkmark  & \\
+Ingredient \emph{types} (dimensions)            & \checkmark  & \\
+Ingredient \emph{quantity values}               &             & \checkmark \\
+Recipe parameters                               &             & \checkmark \\
+Function parameters                             &             & \checkmark \\
+\texttt{foreach} loop variables (type)          & \checkmark  & \\
+\texttt{foreach} loop variables (value)         &             & \checkmark \\
+\texttt{let}-bound names (type, via annotation) & \checkmark  & \\
+\texttt{let}-bound names (value)                &             & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Scoping rule: static (lexical) -- decision \#11.}
+Each of the following constructs opens a fresh scope: a \texttt{recipe}
+body (with its parameters and ingredients in scope), a \texttt{function}
+body (with its parameters in scope), a \texttt{step} body (with the
+recipe's ingredients in scope), an \texttt{if} and \texttt{else} block
+(each independently), a \texttt{repeat} body, and a \texttt{foreach}
+body (with the loop variable in scope). Inner scopes can read
+outer-scope names. Parameter lists live in the \emph{same} scope as the
+body they introduce (plan \S2.5 scope convention): a \texttt{let x}
+inside \texttt{function f(x: int) \{ \dots \}} is a shadowing error,
+not a fresh binding in a nested scope. The name lookup walks the
+parent-pointer chain in the \texttt{Environment} class -- if the user
+asks for \texttt{flour} in a step body, the lookup starts in the step
+body's scope, walks up into the recipe body's scope, and resolves at the
+ingredient declaration.
+
+\paragraph{What would break if we switched to dynamic scoping?}
+Two concrete things, both ugly. (1) \texttt{quantity\_of(flour)} resolves
+through the enclosing recipe's symbol table; under dynamic scoping it
+would resolve through whichever scope happened to be active at run
+time, breaking the type rule that \texttt{quantity\_of} returns the
+dimension of the operand's quantity field -- there would be no single
+``operand'' the type checker can reason about. (2) The
+\texttt{Substitute} call's bare-IDENT slot resolution (decision \#35)
+becomes ambiguous: dynamic scoping would let \texttt{substitute(r, milk,
+\dots)} resolve \texttt{milk} against the caller's scope rather than
+the recipe's, which contradicts the binding-identity rule of decision
+\#28.
+
+\paragraph{No shadowing (decision \#12) and single-assignment
+(decision \#13).} Declaring an identifier already visible in any
+enclosing scope is a compile-time error -- the type checker enforces
+this via \texttt{Environment.declare\_check()}. Within their scope,
+\texttt{let}-bound names, ingredient names, and recipe/function
+parameters are immutable. Loop variables (\texttt{foreach x in $\dots$})
+are rebound on each iteration; within a single iteration they are
+immutable. There is no assignment statement in Recipix v1 (decision
+\#27 -- \texttt{let} is the only binding form).
+
+\paragraph{Lifetime (Sebesta \S5.4).}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Entity} & \textbf{Lifetime} \\
+\midrule
+Recipe / function declarations          & Static (whole program) \\
+Recipe parameters                       & Stack-dynamic, per instantiation \\
+Function parameters                     & Stack-dynamic, per call \\
+Ingredients within a recipe             & Stack-dynamic, per recipe instantiation \\
+\texttt{let}-bound names                & Stack-dynamic, per enclosing scope \\
+\texttt{foreach} loop variables         & Stack-dynamic, per iteration \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent No explicit-heap-dynamic lifetimes exist in v1 -- there is
+no \texttt{new}, no allocation operator, no garbage-collected handle
+exposed to the user.
+
+
+\section{Expressions \& Assignment \texttt{[P2]}}
+
+\paragraph{Operator precedence and associativity (Sebesta \S7.2).}
+
+\begin{center}
+\begin{tabular}{@{}clc@{}}
+\toprule
+\textbf{Level} & \textbf{Operators} & \textbf{Associativity} \\
+\midrule
+1 & unary \texttt{-}, \texttt{!}, \texttt{quantity\_of(...)} & right \\
+2 & \texttt{*}, \texttt{/}                                    & left \\
+3 & \texttt{+}, \texttt{-} (binary)                           & left \\
+4 & \texttt{<}, \texttt{<=}, \texttt{>}, \texttt{>=}          & \textbf{non-associative} \\
+5 & \texttt{==}, \texttt{!=}                                  & \textbf{non-associative} \\
+6 & \texttt{\&\&}                                             & left \\
+7 & \texttt{||}                                               & left \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Parenthesization overrides precedence. The non-associative
+comparison levels are enforced at parse time: \texttt{a < b < c} is a
+parse error, not a type error. This catches a category of bug -- chained
+comparisons that silently parse as \texttt{(a < b) < c} and try to
+compare a \texttt{bool} against the original right operand's type -- at
+the earliest possible phase. The trade-off is that users wanting
+transitive chaining must write \texttt{a < b \&\& b < c} explicitly.
+
+\paragraph{Short-circuit evaluation (Sebesta \S7.5).} \texttt{\&\&}
+and \texttt{||} short-circuit left-to-right. The interpreter evaluates
+the left operand first; if its value determines the result
+(\texttt{false} for \texttt{\&\&}, \texttt{true} for \texttt{||}), the
+right operand is not evaluated. Short-circuit is observable only in
+the sense that the right operand is not type-checked at run time in
+skipped paths -- but the type checker has already proven both operands
+are \texttt{bool}, so short-circuit cannot hide a type error.
+
+\paragraph{Operand evaluation order (Sebesta \S7.6).} Left-to-right,
+fully defined (decision \#18). Stronger than C's ``unspecified'' rule,
+weaker than ``nothing could be different'' (because in the absence of
+side effects the order is unobservable). Recipix has no mutation in v1,
+so the choice is unobservable to the user, but locking the order
+matters for error reporting: in \texttt{let x : int = f(a/0) + g(b/0)},
+the division-by-zero from \texttt{a/0} is the one that fires, not
+\texttt{b/0}. Users debugging a run-time error get a predictable
+line number.
+
+\paragraph{Assignment is a statement, not an expression
+(decision \#27).} The only binding form is \texttt{let <name> : <type>
+= <expr>}, which is a statement. There is no assignment-in-expression
+form. The trade-off is mild verbosity in some patterns (\texttt{if (x =
+compute()) > 0} is not legal in any expression position), but the
+gain is that no expression has a side effect -- which lets decision
+\#18's left-to-right evaluation order be unobservable and lets the
+entire language be referentially transparent in v1. Recipix has no
+compound assignment (\texttt{+=}, \texttt{*=}), no increment
+(\texttt{++}), and no augmented assignment of any kind.
+
+
+\section{Design Rationale \texttt{[P2]}}
+
+One paragraph per non-trivial design decision, in each author's own
+voice. The seven decisions explicitly identified by the rubric --
+coercion, type equivalence, structured-type design, precedence,
+short-circuit, operand order, and assignment-as-statement -- are
+covered below.
+
+\paragraph{Coercion (Sebesta \S7.4) -- İsmail.}
+Recipix's coercion rules are deliberately asymmetric. Within-dimension
+unit coercion is loss-free at the type-system level -- \texttt{200 g}
+and \texttt{1 kg} denote the same dimension, just under different
+representations -- so the language treats this as an internal numeric
+conversion rather than a type-system event. \texttt{int}~$\to$~\texttt{float}
+is the other allowed direction because every 64-bit int small enough to
+matter for cooking is representable in IEEE~754 double precision
+without loss. \texttt{float}~$\to$~\texttt{int} is \emph{never}
+implicit: Sebesta \S7.4 explicitly flags narrowing coercions as the
+dangerous kind, and silent truncation in scaling
+(\texttt{int(round(servings * 1.5))} vs. \texttt{int(servings * 1.5)})
+is exactly the bug a user would have a hard time debugging. The
+trade-off accepted: explicit conversions in v1 are slightly noisier
+than C-style implicit narrowing, but they remove a whole class of
+silent-data-loss errors.
+
+\paragraph{Type equivalence (Sebesta \S6.14) -- İsmail.}
+The split between structural (for \texttt{Quantity<D>}, \texttt{Ingredient},
+\texttt{List<T>}) and name (for \texttt{Recipe}) is the most contested
+design call in the spec. Sebesta \S6.14 frames the choice as one rule
+per language; Recipix takes both -- because the records modeling
+\emph{data shape} (Ingredient, List, Quantity) want structural so they
+interoperate across scopes, while the type modeling \emph{identity}
+(Recipe) wants name so accidental shape-matches cannot silently
+substitute one recipe for another in \texttt{scale} or \texttt{substitute}.
+The trade-off: a Recipix user cannot define a custom record type that
+\emph{happens} to be ``equivalent to an Ingredient,'' but in v1 there
+is no user-defined record syntax anyway (decision \#32), so the
+restriction costs nothing.
+
+\paragraph{Structured-type design (Sebesta \S6.5--6.7) -- İsmail.}
+The list is the only user-facing structured type in Recipix v1, and it
+is intentionally minimal. Element type is fixed at literal construction
+(homogeneous lists, decision \#6); type is inferred (no user-written
+\texttt{List<T>}); no indexing (\texttt{foreach} is the only traversal
+form); the empty list has a defined ``no iterations'' behavior. This
+matches Sebesta \S6.5's framing of lists as ``sequences whose
+length is dynamic but whose element type is fixed.'' What is
+\emph{not} in v1: arbitrary nested type parameters in user code (no
+\texttt{List<List<Mass>>} annotation), variant types, sum types, and
+recursive type definitions. Recipix v1 deliberately stops at the
+single-level homogeneous list because that is the minimum sufficient
+for the language's domain -- step bodies iterating over ingredient
+collections, scaling iterating over fixed-arity recipe parts.
+
+\paragraph{Operator precedence and non-associative comparison -- Berk.}
+The hardest call here was whether to make comparisons non-associative
+or left-associative with the standard \texttt{(a < b) < c} chaining
+semantics. Left-associative is the C/Java/Python-without-chaining
+default and would have made the precedence ladder simpler -- one level
+for all six comparison ops instead of two non-associative levels. I
+picked non-associative because of the failure mode left-associative
+chaining produces: \texttt{1 kg < flour < 2 kg} parses cleanly under C
+semantics, then evaluates \texttt{1 kg < flour} to a \texttt{bool},
+then tries to compare that \texttt{bool} against \texttt{2 kg} and gets
+a type error. The user reads the program, sees a sensible-looking
+transitive comparison, and gets a confusing type-error message at
+run time. Splitting comparisons into \texttt{<rel\_expr>} and
+\texttt{<eq\_expr>} and making both non-associative catches this at
+parse time with a clean ``chained comparison not allowed'' message.
+The trade-off accepted: users who want transitive chaining write
+\texttt{(1 kg < flour) \&\& (flour < 2 kg)} -- a small writability
+cost paid in the currency of reliability and clearer error messages.
+
+\paragraph{Short-circuit \texttt{\&\&} and \texttt{||} -- Berk.}
+Short-circuit is the standard choice and the one Sebesta \S7.5 frames
+as the user-friendly default -- it is what programmers expect, and the
+alternative (eager evaluation of both operands) would force users to
+write \texttt{if x != null \&\& x.field > 0} as nested \texttt{if}s
+with awkward indentation. The interesting design question was
+\emph{which direction} to short-circuit. Left-to-right matches the
+operand-evaluation rule from decision \#18 and gives users one mental
+model for both: expressions are evaluated in the order they are
+written, and logical operators stop early when they have the answer.
+Right-to-left short-circuiting would have been internally consistent
+if the operand-evaluation rule were also right-to-left, but Sebesta
+\S7.6 notes that left-to-right is the strongly dominant convention.
+
+\paragraph{Operand evaluation order is fully defined left-to-right -- Berk.}
+Decision \#18 over-commits compared to most language specs, which
+leave operand order ``unspecified'' so compilers can reorder for
+optimization (C, C++). The C-style choice has a real cost in
+pedagogical languages and in DSLs: a student running the same program
+twice can get different run-time errors because two division-by-zero
+candidates fire in different orders on different platforms. For
+Recipix this would be especially confusing because the error messages
+cite line numbers, and a non-deterministic line number breaks the
+reliability promise the language makes. I locked left-to-right and
+accepted the cost (the interpreter cannot reorder operands for any
+optimization) because reliability and predictable error reporting
+matter more than performance in v1 -- and ``performance'' was already
+deprioritized in spec \S1's evaluation-criteria framing.
+
+\paragraph{Assignment is a statement, not an expression -- Berk.}
+Decision \#27 was a deliberate import from functional-language
+discipline: with \texttt{let} as the only binding form and assignment
+as a statement, every expression in Recipix is referentially
+transparent -- the same expression evaluated in the same scope
+produces the same value, every time. The trade-off is that some
+patterns require slightly more code (no \texttt{while ((line =
+read()) != null)} form). I accepted this because (a)~v1 has no
+mutation and no I/O loop, so the missing pattern does not arise in
+real Recipix programs, and (b)~it lets decision \#18's left-to-right
+evaluation order be entirely unobservable, which simplifies the
+operational semantics in \S4 above -- every rule for binary
+operators can ignore the question ``what if the left operand modified
+something the right operand reads?'' because no operand can modify
+anything. The cost is a v1-only restriction; if Recipix v2
+introduces mutation, assignment-as-statement is the first rule that
+should be revisited.
+
+\vfill
+\noindent\rule{\textwidth}{0.4pt}
+\begin{center}
+\small
+\emph{End of D1 [P2]. Companion documents: D3 (test report and
+sample outputs), the locked language specification at
+\texttt{recipix\_v4\_1\_spec.md}, and the joint contract at
+\texttt{part2\_plan.md}.}
+\end{center}
+
+\end{document}
