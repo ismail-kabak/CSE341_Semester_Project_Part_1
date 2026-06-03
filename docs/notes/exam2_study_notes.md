@@ -479,215 +479,563 @@ referentially transparent.**
 
 # PART 2 — Cheat-Sheet Material (for your 3 A4 sheets)
 
-The following is the dense reference content distilled from Part 1.
-Pick which lines go on which sheet based on what you tend to forget.
+What follows is **everything you might need on paper**, organized into
+three sheets. Each sheet is sized for a tight handwritten A4. Skip
+the lines you've already memorised; copy what you tend to forget.
 
-## Sheet 1 — Quick reference
+---
 
-### Seven-level precedence ladder
+## SHEET 1 — Language & Decisions Reference
 
-```
-  Level 1  unary - / ! / quantity_of(...)   right-assoc
-  Level 2  * /                              left-assoc
-  Level 3  + - (binary)                     left-assoc
-  Level 4  < <= > >=                        non-associative
-  Level 5  == !=                            non-associative
-  Level 6  &&                               left-assoc
-  Level 7  ||                               left-assoc
-```
-
-### Top 12 decisions (memorise the number + one-line summary)
+### 1.1 Sebesta chapter quick-map (memorise: number → topic → Recipix)
 
 ```
-#4   Pinch is its own primitive (not Quantity<Pinch>)
-#7   Quantity literals are TWO tokens (number + unit)
-#10  Equivalence: structural for Quantity/Ingredient/List,
-                  name for Recipe
-#11  Static (lexical) scoping
-#12  No shadowing (compile-time error)
-#13  Single-assignment (let names are immutable)
-#17  Comparison non-associative (no chaining at parse time)
-#18  Operand evaluation L-to-R, fully defined
-#20  Mandatory braces on if/else (no dangling-else)
-#25  scale/substitute are functional (fresh value, no mutation)
-#27  Assignment is a statement, not an expression
-#31  Implicit Ingredient → Quantity projection
-#34  quantity_of is a unary operator, not a function
-#35  substitute slots are bare IDENT terminals
-```
-
-### Sebesta quick map
-
-```
-§1.3   Eval criteria: readability, writability, reliability, cost.
-       Recipix priorities: reliability > writability > readability > cost
-§3.5   Operational semantics — Recipix uses big-step
-§5.4   Lifetime: stack-dynamic for everything except recipe/fn decls
-§5.5   Static scoping; lookup walks parent-pointer chain
-§6.2   Primitives defined by operations they support, not storage
-§6.5   Lists: homogeneous, type inferred, no indexing, foreach-only
-§6.12  Strongly typed = type errors always detected (Recipix: yes)
-§6.14  Type equivalence — Recipix splits structural and name
+§1.3   Eval criteria: readability / writability / reliability / cost
+        Recipix order: RELIABILITY > writability > readability >> cost
+§1.4   Categories: imperative + functional flavor (ref-transparent v1)
+§3.1   BNF/EBNF: {}, [], |, "literal", <nonterm>, UPPERCASE_TOKEN
+§3.5   Semantics: operational / denotational / axiomatic
+        Recipix uses big-step OPERATIONAL (D1 §4.4)
+§4.4   Recursive descent: 1 function per nonterminal
+        Recipix: _parse_or → _and → _eq → _rel → _add → _mul → _unary → _primary
+§5.2   Identifier rules: [a-zA-Z_][a-zA-Z0-9_]*, ASCII, case-sensitive
+§5.3   Binding times: language design / compile / run
+§5.4   Lifetime: static / stack-dynamic / heap-dynamic
+        Recipix: recipe+fn STATIC; everything else STACK-DYNAMIC
+§5.5   STATIC (lexical) scoping vs dynamic
+        Recipix decision #11: static; lookup walks parent chain
+§6.2   Primitive types defined by OPERATIONS, not storage
+§6.5   Lists: element type, index, static/dynamic, subscript-check
+§6.7   Records: structural component
+§6.12  STRONG typing: every type error detected
+        Recipix: yes (2 v1 exceptions: neg quantities, empty list)
+§6.13  Compile-time (static) type checking
+§6.14  Type equivalence: NAME vs STRUCTURAL
+        Recipix #10: split — struct for Q/I/L, name for Recipe
 §7.2   Precedence + associativity table
-§7.4   Coercion — Recipix allows widening + within-dimension only
-§7.5   Short-circuit: &&, || left-to-right
-§7.6   Operand order — Recipix locks L-to-R
-§9.5   Parameter passing — collapses to by-value in absence of mutation
+§7.4   Coercion: widening (safe) vs narrowing (dangerous)
+§7.5   Short-circuit: && and || skip 2nd if 1st determines result
+§7.6   Operand evaluation order
+        Recipix #18: L-to-R FULLY DEFINED
+§7.6   Assignment: statement OR expression
+        Recipix #27: STATEMENT only (let)
+§9.5   Param passing: by-value / by-ref / by-result / by-value-result
+        Recipix #16: collapses to by-value (no mutation in v1)
 ```
 
-## Sheet 2 — Mechanics (walk-through ready)
-
-### `scale(r, by: k)` — 7 steps
+### 1.2 Full 7-level precedence ladder (with associativity)
 
 ```
-1. <r, S> -> RtRecipe(name, n, ingredients, step_decls,
-                      captured_params, ...)
-2. <k, S> -> k : (int | float); if k <= 0 -> RuntimeRecipixError
-3. n' = int(round(n * k))                  # banker's rounding
-4. for (id, ing) in ingredients:
-     if dim in {Mass, Volume, Count}: scale by k
-     if dim in {Temperature, Duration}: unchanged (intensive)
-     if RtPinch: unchanged
-5. Build S_scaled (fresh env): servings -> n', ingredients -> scaled
-6. Re-execute step bodies under S_scaled
-7. Return fresh RtRecipe(...) — original never mutated (decision #25)
+LEVEL  OPERATORS                               ASSOCIATIVITY
+  1    unary - , !, quantity_of(...)           RIGHT
+  2    *  /                                    LEFT
+  3    +  -  (binary)                          LEFT
+  4    <  <=  >  >=                            NON-ASSOC (parse error)
+  5    ==  !=                                  NON-ASSOC (parse error)
+  6    &&                                      LEFT (short-circuit)
+  7    ||                                      LEFT (short-circuit)
+
+Higher LEVEL = tighter binding.
+1 + 2 * 3   parses as 1 + (2 * 3)            (level 2 tighter than 3)
+-quantity_of(flour) * 2  parses as (-(quantity_of(flour))) * 2
+1 kg < flour < 2 kg      => PARSE ERROR     (non-assoc level 4)
+flour < salt == cinnamon => PARSE ERROR     (mixed non-assoc 4 & 5)
 ```
 
-### `substitute(r, x, with: y, ratio: k)` — 6 steps
+### 1.3 Top-15 decisions (number + one-liner — must know cold)
 
 ```
-1. <r, S> -> RtRecipe
-2. Look up x, y in recipe.ingredient_types
-   (bare IDENT terminals per #35 — symbol-table lookup, not runtime)
-3. new_quantity = original.quantity * k
-4. Build new ingredients: replace original slot with replacement
-5. POP the standalone y binding (consumed) — only substituted slot
-   appears in output
-6. Return fresh RtRecipe — original untouched
+#1   3 primitive types: int / float / bool
+#3   5 quantity dimensions: Mass / Volume / Count / Temperature / Duration
+#4   Pinch is its OWN primitive (not Quantity<Pinch>) — no arithmetic
+#5   Structured types: Ingredient / Recipe / Step / List<T>
+#6   Lists are HOMOGENEOUS (all elements same type)
+#7   Quantity literals = TWO tokens (NUMBER + UNIT)
+        invalid: 200g  valid: 200 g  also valid: 200 /* note */ g
+#8   STRONG typing (yes)
+#9   Coercion: within-dim unit + int→float widening; NEVER float→int
+#10  Equivalence SPLIT: struct for Quantity/Ingredient/List; NAME for Recipe
+#11  STATIC (lexical) scoping
+#12  Shadowing FORBIDDEN (compile-time error #6)
+#13  SINGLE-ASSIGNMENT (let names immutable in their scope)
+#15  Parameterized recipes (primary abstraction) + scalar functions (helpers)
+#16  Parameter passing: SEMANTICALLY BY-VALUE (no mutation in v1)
+#17  Comparison NON-ASSOCIATIVE (no chaining)
+#18  Operand eval: L-to-R FULLY DEFINED
+#19  Short-circuit && and || left-to-right
+#20  Mandatory braces on if/else (no dangling-else)
+#21  Loops: repeat <int> times { } and foreach <id> in <list> { }
+#23  Step modifiers: [at <expr>] [for <expr>] in FIXED order
+#25  scale/substitute FUNCTIONAL: fresh value, no mutation, no `this`
+#26  No recipe composition (removed from v1)
+#27  Assignment is a STATEMENT, not an expression
+#28  Ingredient identity = the BINDING (not the name field)
+#29  Action verbs are an EXCEPTION to homogeneous-list rule
+#30  No expr-then-unit: use <expr> * 1 <unit> to build from computed value
+#31  Implicit Ingredient → Quantity projection in arith/cmp/sub context
+#32  Closed type-name set; NO List<T> annotation in user source
+#34  quantity_of is a UNARY OPERATOR, not a function
+#35  substitute slots are BARE IDENT terminals (not <expr>)
 ```
 
-### Sample 1 output explanation
+### 1.4 Coercion rules (§7.4)
 
 ```
-evaluate scale(pancakes(servings: 4), by: 1.5)
-  -> pancakes(servings: 4) instantiates with servings=4
-     ingredients: 50*4=200g flour, 60*4=240ml milk, half(4)=2 eggs
-     steps eager-evaluated in env where servings=4
-       step 3 unrolls "repeat 4 times" -> 4 pour/flip cycles
-     returns RtRecipe with step_decls + captured_params snapshot
+ALLOWED implicitly:
+  int + float       → float    (widening, info-preserving, dec #9)
+  200 g + 1 kg      → 1200 g   (within-dim unit, representation-only)
+  Ingredient<D>     → D        (projection in arith ctx, dec #31)
 
-  -> scale(..., by: 1.5)
-     n' = int(round(4 * 1.5)) = 6
-     ingredients scaled: 200*1.5=300g, 240*1.5=360ml, 2*1.5=3 eggs
-     fresh env S_scaled: servings=6, scaled ingredients
-     RE-EXECUTE step bodies under S_scaled
-       step 3 "repeat 6 times" now unrolls -> 6 pour/flip cycles
-     fresh RtRecipe(serves=6, scaled ingredients, 6-cycle steps)
+FORBIDDEN implicitly (must be explicit):
+  float → int       NEVER       (narrowing; reserved for v2 to_int())
+  Mass  → Volume    NEVER       (cross-dim)
+  Pinch → anything  NEVER       (ceremonial discipline)
+
+QUANTITY ARITHMETIC TABLE:
+  mass + mass (same dim)        OK, with unit conversion
+  mass + volume                  ERROR #1 (dimension mismatch)
+  quantity * scalar              OK (dim preserved): 200 g * 2 = 400 g
+  scalar * quantity              OK (commutative)
+  quantity * quantity            ERROR #1 (no dim products v1)
+  quantity / scalar              OK (dim preserved)
+  quantity / quantity (same dim) OK → UNITLESS scalar: 1 kg / 200 g = 5
+  quantity / quantity (diff dim) ERROR #1
+  unary -quantity                OK syntactically (interpreter accepts;
+                                 checker doesn't flag neg in v1 — gap)
+  any op involving Pinch         ERROR #2
 ```
 
-### Implicit Ingredient → Quantity projection (#31)
+### 1.5 Type equivalence split (#10, Sebesta §6.14)
 
 ```
-flour + 100 g                # both project, lt = Mass, rt = Mass
-  is equivalent to
-quantity_of(flour) + 100 g
+TYPE             RULE                                    DOMAIN MEANING
+Quantity<D>      STRUCTURAL                              data shape
+Ingredient       STRUCTURAL                              data shape (2-field record)
+List<T>          STRUCTURAL in parameter, NAME in ctor   parametric type
+Recipe           NAME                                    identity (pancakes ≠ crepes)
+Step             — (not user-visible in v1; defaults to structural)
+Pinch            PRIMITIVE                               separate carve-out
+```
 
-The type checker's _dimension_of(t):
-  if t in {Mass, Volume, Count, Temperature, Duration}: return t
-  if t.startswith("Ingredient:") and not endswith(":Pinch"):
+### 1.6 Unit conversion factors (D1 §3, runtime_values.py UNIT_TABLE)
+
+```
+DIMENSION    BASE UNIT   OTHER UNITS
+Mass         g           1 kg = 1000 g; 1 mg = 0.001 g
+Volume       ml          1 l = 1000 ml; 1 tsp = 5 ml;
+                         1 tbsp = 15 ml; 1 cup = 240 ml
+Count        count       (no conversions)
+Temperature  °C          (no conversions)
+Duration     min         1 hr = 60 min
+Pinch        —           (singleton, no conversion)
+```
+
+---
+
+## SHEET 2 — Mechanics & Algorithms (walk-through ready)
+
+### 2.1 `scale(r, by: k)` — full operational semantics
+
+```
+RULE (big-step):
+  <r, S> → RtRecipe(name, n, ingredients, step_decls, captured_params, …)
+  <k, S> → k : (int | float)
+  k > 0                                              ← else RuntimeRecipixError
+  n' = int(round(n * k))                             ← banker's rounding
+  ingredients' = scale_each(ingredients, k)
+  S_scaled = globals.child()
+    for (p, v) in captured_params:
+      S_scaled[p] = n' if v was original servings, else v
+    for (id, ing') in ingredients':
+      S_scaled[id] = ing'
+  steps' = [exec_step(sd, S_scaled.child()) for sd in step_decls]
+  ───────────────────────────────────────────────
+  <scale(r, by: k), S> → fresh RtRecipe(name, n', ingredients', steps', …)
+
+scale_each(ing, k):
+  if ing.q.dim in {Mass, Volume, Count}:
+    RtIngredient(ing.name, RtQuantity(ing.q.value * k, ing.q.dim))
+  if ing.q.dim in {Temperature, Duration} or ing.q is RtPinch:
+    ing                                              ← unchanged
+```
+
+### 2.2 `substitute(r, x, with: y, ratio: k)` — full
+
+```
+RULE:
+  <r, S> → RtRecipe(name, n, ingredients, …)
+  k > 0
+  x, y must be IDENT (decision #35); look up in recipe.ingredient_types
+  orig = ingredients[x]; repl = ingredients[y]
+  orig.q.dim == repl.q.dim                           ← else error #1
+  not (orig.q is Pinch XOR repl.q is Pinch)         ← else error #16
+  new_q = RtQuantity(orig.q.value * k, orig.q.dim)
+  new_ings = ingredients with x → RtIngredient(y, new_q)
+  if y != x: new_ings.pop(y)                        ← consume replacement
+  ───────────────────────────────────────────────
+  <substitute(r, x, with: y, ratio: k), S> → fresh RtRecipe(…, new_ings, …)
+```
+
+### 2.3 `foreach x in <list> { body }` — big-step
+
+```
+RULE:
+  <list_expr, S> → RtList(elems, T)
+  S_0 = S
+  ∀ i ∈ [0, |elems|):
+    S_i' = S_i[x ↦ elems[i]]               ← bind in fresh scope
+    <body, S_i'> → S_{i+1}''
+    S_{i+1} = S_{i+1}'' \ {x}              ← x out of scope
+  ───────────────────────────────────────────
+  <foreach x in list_expr { body }, S> → S_{|elems|}
+
+NOTES:
+  • list evaluated ONCE before iteration (decision #18)
+  • x typed as T inferred at list construction
+  • x cannot shadow (checker enforces #12 at compile time)
+  • empty list → zero iterations, no error
+```
+
+### 2.4 Implicit Ingredient → Quantity projection (#31)
+
+```
+HELPER:
+  _dimension_of(t):
+    if t in {Mass, Volume, Count, Temperature, Duration}: return t
+    if t.startswith("Ingredient:") and not endswith(":Pinch"):
       return t[len("Ingredient:"):]
-  return None
+    return None
+
+APPLIES IN:
+  • BinaryOp (arithmetic):    flour + 100 g
+  • CompareOp:                flour > 100 g
+  • SubstituteCall (impl):    inside ratio handling
+  • action-verb dispatch (homogeneous class)
+
+EQUIVALENT EXPLICIT:
+  flour + 100 g  ≡  quantity_of(flour) + 100 g
 ```
 
-### AmbiguousCall resolution
+### 2.5 AmbiguousCall resolution (plan §2.1 + §3)
 
 ```
-parser: f()  -> AmbiguousCall(name="f")
-typechecker._rewrite_ambiguous walks AST:
-  if name in functions: -> FunctionCall(name, args=[], line)
-  if name in recipes:   -> RecipeCall(name, kwargs=[], line)
-  else: leave intact -> later raises error #4 (unknown ident)
+PARSER:
+  flip()      → AmbiguousCall(name="flip")
+  half(4)     → FunctionCall(name="half", args=[IntLit(4)])
+  pancakes(servings: 4) → RecipeCall(name="pancakes", kwargs=[…])
 
-interpreter sees AmbiguousCall -> raises RuntimeRecipixError
-  (loud-fail to prevent silent skip of type checker)
+TYPECHECKER._rewrite_ambiguous walks AST:
+  if name in functions: → FunctionCall(name, args=[], line=…)
+  if name in recipes:   → RecipeCall(name, kwargs=[], line=…)
+  else: leave           → later raises error #4 (unknown identifier)
+
+INTERPRETER._eval_AmbiguousCall:
+  raise RuntimeRecipixError("internal error: AmbiguousCall reached
+        interpreter; type checker did not run")
+  ← LOUD FAIL: prevents silent failures when typechecker is skipped
 ```
 
-## Sheet 3 — Defenses (rationale paragraphs in shorthand)
-
-### Non-associative comparison (#17)
+### 2.6 Sample 1 — full trace
 
 ```
-Left-assoc: 1kg < flour < 2kg
-  parses as (1kg < flour) < 2kg
-  evaluates 1kg < flour -> bool
-  then compares bool < 2kg
-  RUNTIME type error
-Non-assoc:
-  parses as PARSE ERROR
-  user must write (1kg < flour) && (flour < 2kg)
-Trade-off: small writability cost, big reliability + error-msg win
+SRC:  evaluate scale(pancakes(servings: 4), by: 1.5)
+
+STEP A: pancakes(servings: 4) — recipe instantiation
+  env = {servings: 4}
+  ingredients evaluated:
+    flour: 50 g * 4 = 200 g
+    milk : 60 ml * 4 = 240 ml
+    eggs : half(4) * 1 count = 2 count
+    salt : 1 pinch
+  step bodies eager-evaluated:
+    step 1 "Mix dry"  → actions = [combine(flour, salt)]
+    step 2 "Add wet"  → actions = [combine(milk, eggs)]
+    step 3 "Cook batches" at 180°C for 3 min
+      repeat 4 times { pour(milk); flip() }
+      → actions = [pour, flip, pour, flip, pour, flip, pour, flip]  (4 cycles)
+  RtRecipe(name="pancakes", servings=4, ingredients={…},
+           steps=[…], step_decls=[…], captured_params={servings:4})
+
+STEP B: scale(prev, by: 1.5) — re-execution
+  n' = int(round(4 * 1.5)) = 6
+  scaled ingredients:
+    flour: 200*1.5 = 300 g
+    milk : 240*1.5 = 360 ml
+    eggs : 2*1.5 = 3 count
+    salt : 1 pinch  (UNCHANGED — Pinch)
+  S_scaled = {servings: 6, flour:300g, milk:360ml, eggs:3, salt:pinch}
+  step bodies RE-EXECUTED:
+    step 1 → combine(flour, salt)
+    step 2 → combine(milk, eggs)
+    step 3 → repeat 6 times { pour(milk); flip() }
+         → 6 pour/flip cycles = 12 action lines
+  Fresh RtRecipe — old one never mutated
+
+STEP C: evaluate → render_recipe → cookbook output
 ```
 
-### Short-circuit `&&` / `||` L-to-R
+### 2.7 Sample 2 — substitute mechanics
 
 ```
-- Standard programmer expectation (Sebesta §7.5)
-- Direction matches decision #18 operand order
-- One mental model for both -> consistency
-- Eager would force nesting in null-checks
+SRC:  evaluate substitute(smoothie(servings: 2), milk, with: oat_milk, ratio: 1.0)
+       evaluate smoothie(servings: 2)
+
+EVAL 1 (vegan): substitute
+  smoothie(servings: 2) instantiates with:
+    milk : 300 ml, banana: 2, sweetener: 20 g, oat_milk: 300 ml
+  substitute looks up x="milk", y="oat_milk" in ingredient_types
+  new_quantity = 300 ml * 1.0 = 300 ml
+  new_ingredients = {milk: oat_milk@300ml,            ← slot relabeled
+                     banana: 2,
+                     sweetener: 20 g}
+                     # oat_milk standalone POPPED (#consumed)
+  Output: oat_milk 300 ml, banana 2, sweetener 20 g
+
+EVAL 2 (non-vegan): no substitute
+  Plain smoothie instantiation
+  Output: milk 300 ml, banana 2, sweetener 20 g, oat_milk 300 ml
+                                                  ↑ stays because pre-declared
+                                                  ↑ for substitute call site
+                                                  ↑ (#28 no-this design)
 ```
 
-### Operand evaluation order locked (#18)
+### 2.8 The 19 spec §10 compile-time errors
 
 ```
-- C/C++: "unspecified" -> compiler can reorder
-- Cost in a DSL: same program, different runtime errors, different lines
-- Recipix: L-to-R, fully defined
-- Reliability > optimization (which §1 already deprioritized)
-- Unobservable on values because no side effects (#27 + #16)
-- Observable only in error reporting -> predictable line numbers
+#1   dim mismatch in arith/cmp/substitute
+#2   Pinch in arith/cmp/scaling
+#3   heterogeneous list literal
+#4   unknown identifier
+#5   single-assignment violation (re-declare in same scope)
+#6   shadowing (re-declare visible from any ancestor)
+#7   non-bool in if condition
+#8   non-int in repeat count
+#9   non-list in foreach source
+#10  non-Temperature in step at modifier
+#11  non-Duration in step for modifier
+#12  wrong arity in recipe/function call
+#13  wrong arg types (incl. action verbs)
+#14  substitute of unknown ingredient
+#15  float → int coercion attempt
+#16  substitute swaps Pinch ↔ Quantity
+#17  non-IDENT in substitute slot (parser catches)
+#18  quantity_of on non-Ingredient
+#19  return not as last stmt of function body (plan §2.6, added by us)
+
+RUNTIME ERRORS (5):
+  negative repeat count
+  negative or zero scale.by
+  substitute of unknown ingredient (rare; usually caught by #14)
+  division by zero in scalar arithmetic
+  Pinch in arithmetic context at runtime (rare; usually caught by #2)
 ```
 
-### Assignment as statement (#27)
+### 2.9 Action-verb three-class table (plan §2.3)
 
 ```
-- Only binding: let <name> : <type> = <expr>
-- Every expression referentially transparent
-- Decision #18 L-to-R becomes unobservable (no operand can mutate)
-- Operational semantics in §4.4 simplified
-- Trade-off: no while ((x = read()) != null) -- but v1 has no I/O loop
-- v2 mutation -> revisit this rule FIRST
+CLASS          VERBS                              RULE
+Heterogeneous  combine, mix, add, sprinkle        ≥1 arg; Ingredient/Quantity
+                                                   any dim including Pinch;
+                                                   mixed dims OK (#29 carve-out)
+Homogeneous    pour, drizzle, whisk, blend,       ≥1 arg; all args share ONE dim;
+               knead, melt                         Pinch FORBIDDEN; projection #31
+Nullary        bake, flip                          0 args (params via step modifiers)
 ```
 
-### Pinch as separate primitive (#4)
+---
+
+## SHEET 3 — Defenses, Vocabulary & Quick-Recall
+
+### 3.1 §4.8 rationale defenses (compressed for the exam)
 
 ```
-- Quantity<Pinch> would need per-op carve-outs
-- Separate primitive: carve-out in checker's per-op entry points only
-- Sebesta §6.2: primitives defined by operations supported
-- Pinch supports ceremonial operations only
+NON-ASSOC COMPARISON (#17, §7.2):
+  Left-assoc: 1kg < flour < 2kg → (1kg<flour)<2kg → bool<2kg → RUNTIME error
+  Non-assoc:  PARSE ERROR (earliest phase, clearest message)
+  Trade-off: users write (1kg < flour) && (flour < 2kg) — small writability cost
+  Reliability > writability, consistent with §1.3 priorities
+
+SHORT-CIRCUIT (#19, §7.5):
+  Standard programmer expectation; matches operand order (#18)
+  One mental model for both; eager would force nested if for null-checks
+  Safety bonus: x != 0 && y/x > 1  ← y/x skipped when x=0
+
+OPERAND ORDER L-TO-R (#18, §7.6):
+  C/C++ "unspecified" → compiler reorders → cross-platform different errors
+  Recipix: locked L-to-R; reliability > optimization (#1 already deprioritizes)
+  Unobservable on VALUES (no side effects: #27 + #16)
+  Observable in ERROR REPORTING: predictable line numbers
+
+ASSIGNMENT AS STATEMENT (#27, §7.6):
+  Only binding: let <name>:<type> = <expr>
+  Every expression referentially transparent
+  Decision #18 L-to-R unobservable (no operand can mutate)
+  Operational semantics §4.4 simplified
+  v2 mutation → revisit #27 FIRST
+
+PINCH PRIMITIVE (#4, §6.2):
+  Quantity<Pinch> would need carve-outs in every operator
+  Separate primitive: carve-out in checker per-op entries only
+  §6.2: primitives defined by operations supported, not storage
+  Pinch supports ceremonial operations only — keeps language honest
+
+EQUIVALENCE SPLIT (#10, §6.14):
+  Data shape → STRUCTURAL (Ingredient/List/Quantity)
+  Identity   → NAME      (Recipe — pancakes ≠ crepes)
+  v1's closed type-name set forecloses hypothetical collision concerns
+
+QUANTITY_OF AT UNARY (#34, §7.2):
+  Return type DEPENDS on operand type: Ingredient<D> → D
+  No FunctionType signature can express this dependency
+  Unary production: cannot be shadowed, assigned, or passed as value
+
+SCALE / SUBSTITUTE FUNCTIONAL (#25):
+  Fresh RtRecipe value; original never mutated
+  Referential transparency preserved
+  No `this`: alternatives pre-declared inside recipe (#28 binding identity)
+
+THREE-CLASS VERB COLLAPSE (plan §2.3):
+  12 per-verb signatures → 12 checker branches + 24 tests + memorization tax
+  Three classes honor decision #29 carve-out + projection #31
+  Trade-off: pour(flour:Mass) type-checks (English-language verb semantics lost)
+  v2 can add per-verb dimensions to homogeneous class — backwards-compatible
 ```
 
-### Equivalence split (#10)
+### 3.2 Sebesta vocabulary cheat sheet
 
 ```
-- Records modeling DATA SHAPE -> structural
-  (Ingredient, List<T>, Quantity<D>)
-- Records modeling IDENTITY -> name
-  (Recipe -- pancakes != crepes even with same field set)
-- v1's closed type-name set forecloses collision concerns
-  that motivate name-equiv in open systems
+TERM (§)                   ONE-LINE DEFINITION                  RECIPIX INSTANCE
+Strong typing (§6.12)      Type errors always detected          Yes (2 named gaps)
+Coercion (§7.4)            Implicit type conversion             Within-dim + int→float only
+Widening coercion (§7.4)   Info-preserving direction            int → float
+Narrowing coercion (§7.4)  Info-losing direction (dangerous)    float→int explicitly forbidden
+Structural equiv. (§6.14)  Same field shape = same type         Quantity / Ingredient / List
+Name equivalence (§6.14)   Same declaration name = same type    Recipe
+Static scoping (§5.5)      Lookup by lexical structure          Yes, decision #11
+Dynamic scoping (§5.5)     Lookup through call stack            NOT used
+Stack-dynamic (§5.4)       Lifetime = activation lifetime       Most local bindings
+Heap-dynamic (§5.4)        Lifetime = explicit allocation       NONE in v1
+Referential transparency   Same expr = same value, always       Recipix v1 YES
+Side-effect free           No mutation observable               #16+#25+#27 together
+Short-circuit (§7.5)       Skip 2nd operand if 1st decides      && and || L-to-R
+Pass-by-value (§9.5)       Caller copy unmodifiable             All params (no mutation)
+Pass-by-reference (§9.5)   Callee can modify caller's value     Used internally as opt only
+                                                                (unobservable in v1)
+Operational sem (§3.5)     Abstract-machine transition rules    Big-step for scale, foreach
+Denotational sem (§3.5)    Map to mathematical functions        NOT used
+Axiomatic sem (§3.5)       Pre/postconditions (Hoare logic)     NOT used (handout forbids)
+Type checking (§6.13)      Verify ops on compatible operands    Compile-time
+Single-assignment          Names bound once, immutable          Decision #13
+Lexical scope              Same as static                       Decision #11
+Symbol table               Name → (type, scope) map             Environment class
+Activation record          Stack frame for function call        Implicit in tree-walking
 ```
 
-### `quantity_of` at unary level (#34)
+### 3.3 Binding-times table (§5.3)
 
 ```
-- Return type depends on operand type:
-    quantity_of : Ingredient<D> -> D
-- No FunctionType signature can express this dependency
-- Unary-level production gives dedicated grammar slot
-- Side benefit: can't be shadowed, can't be assigned,
-  can't be passed as a value
+BINDING                                    COMPILE TIME   RUN TIME
+Recipe declarations (name, signature)      ✓              —
+Function declarations (name, signature)    ✓              —
+Ingredient TYPES (the dimension)           ✓              —
+Ingredient quantity VALUES                 —              ✓ (at instantiation)
+Recipe parameters                          —              ✓ (at instantiation)
+Function parameters                        —              ✓ (at call)
+foreach loop variable TYPE                 ✓              —
+foreach loop variable VALUE                —              ✓ (per iteration)
+let-bound TYPE (required annotation)       ✓              —
+let-bound VALUE                            —              ✓
+```
+
+### 3.4 Token-category reference (§4.2 of D1)
+
+```
+CATEGORY               EXAMPLES                                            CONST
+Identifier             flour, oat_milk                                     IDENT
+Integer literal        200, 0, 42                                          INT_LIT
+Float literal          1.5, 0.5                                            FLOAT_LIT
+String literal         "Mix dry"                                           STRING_LIT
+Boolean literal        true, false                                         BOOL_LIT
+Reserved keyword       recipe, function, let, if, else, repeat, foreach,
+                       evaluate, scale, substitute, ...                    (type = keyword text)
+Type-name keyword      int, float, bool, Mass, Volume, ...                 TYPE_KW
+Action-verb keyword    combine, mix, pour, ...                             ACTION_KW
+Unit keyword           g, kg, ml, °C, min, pinch, ...                      UNIT_KW
+Operator               + - * / == != < <= > >= && || ! =                   PLUS, EQ, ...
+Separator              ( ) { } [ ] , : ->                                  LPAREN, ...
+```
+
+### 3.5 List design decisions (§6.5)
+
+```
+QUESTION                          RECIPIX ANSWER
+Element type                      Homogeneous (decision #6)
+Index range                       Not user-facing
+Subscript check                   N/A (no indexing)
+Static vs dynamic                 Type STATIC (inferred), length DYNAMIC
+User-writable List<T> annotation  Forbidden in v1 (decision #32)
+Empty list behavior               foreach → 0 iterations, no error
+Element-type inference            At literal construction and foreach entry
+```
+
+### 3.6 The DSL one-liner (write this on EVERY answer that asks "why is Recipix a DSL")
+
+```
+"Dimensional type discipline. A general-purpose language treats 200
+and 500 as raw numbers. Recipix lifts the dimensional structure into
+the type system — adding grams to milliliters is a compile-time error.
+The three domain-specific operations (evaluate, scale, substitute) and
+the structured types (Recipe, Ingredient) all exist to preserve this
+invariant."
+```
+
+### 3.7 Common-question quick-recall table
+
+```
+Q ASKED                                                ONE-LINE ANSWER
+Why does sample 1 show 6 cycles instead of 4?         scale re-executes step
+                                                       bodies under S_scaled
+                                                       where servings=6 (D1 §4.4)
+Why does sample 2 show 2 oat_milk lines (non-veg)?    no-this; oat_milk pre-
+                                                       declared so substitute
+                                                       can reference it (#28)
+Why is pour(flour) accepted?                           three-class collapse:
+                                                       single-arg trivially
+                                                       homogeneous; v2 candidate
+Why no negative-quantity check?                        v1 scope-out; sign
+                                                       discipline doubles lattice;
+                                                       v2 fix
+Why use banker's rounding?                             unbiased on halves;
+                                                       truncation halves cook,
+                                                       ceiling over-orders
+Why static scoping over dynamic?                       quantity_of and substitute
+                                                       bare-IDENT both break under
+                                                       dynamic
+Why Pinch separate primitive?                          avoids per-op carve-outs
+                                                       in Quantity<D>; §6.2 ops
+                                                       framing
+Why split equivalence rule?                            shape vs identity records
+                                                       want different rules
+Why assignment-as-statement?                           referential transparency;
+                                                       no mutation in v1
+What guarantees ref-transparency?                      #16 + #25 + #27 together
+```
+
+### 3.8 Exam-time process checklist
+
+```
+1. Read all questions FIRST. Note which want chapter cites, which want
+   project-specific defenses, which want trace-throughs.
+2. Budget ~9 min per question. Project-specific Qs are usually faster
+   if you have the §2.x mechanics memorised.
+3. ALWAYS name the Sebesta section AND the decision number in your
+   answer. (E.g. "Per Sebesta §7.2 and Recipix decision #17, …")
+4. For trace-through Qs (sample 1, sample 3): walk the EXAM grader
+   through your steps, don't just state the answer.
+5. For defense Qs: state the choice, state the alternative, state the
+   trade-off ACCEPTED. Three sentences minimum.
+6. If you don't know: cite the closest decision number you DO know
+   and reason from it. Partial credit > blank.
 ```
 
 ---
