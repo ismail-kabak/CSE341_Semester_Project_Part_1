@@ -485,6 +485,166 @@ the lines you've already memorised; copy what you tend to forget.
 
 ---
 
+## ⚠️ READ THIS FIRST — what actually fits on 3 sides of A4
+
+Single-side handwritten A4 fits **~30-35 lines** of dense text. Three
+sides = **~90 lines total**. The expanded "Sheet 1 / 2 / 3" sections
+below are REFERENCE material for study — **way too much** to fit on
+paper. Use them to *understand* the content; then transcribe only the
+**compact version below** onto your three sheets.
+
+---
+
+## ⚡ COMPACT VERSION — the actual cheat sheet (3 × A4, one side each)
+
+### COMPACT SHEET 1 (one A4 side) — Reference card
+
+```
+PRECEDENCE LADDER (high → low, associativity right column)
+  1  -x  !x  quantity_of(...)             RIGHT
+  2  *  /                                  LEFT
+  3  +  -                                  LEFT
+  4  < <= > >=                             NON-ASSOC = parse error
+  5  == !=                                 NON-ASSOC = parse error
+  6  &&                                    LEFT short-circuit
+  7  ||                                    LEFT short-circuit
+
+TOP DECISIONS  (number → one-line summary)
+  #4  Pinch own primitive (no arithmetic)
+  #7  Quantity literal = TWO tokens
+  #10 Equiv split: structural Q/I/L, NAME for Recipe
+  #11 Static lexical scoping
+  #12 No shadowing (compile-error #6)
+  #13 Single-assignment (let immutable)
+  #16 Param by-value (no mutation in v1)
+  #17 Cmp non-associative (no chaining)
+  #18 Operand eval L→R, fully defined
+  #19 && || short-circuit L→R
+  #20 Braces mandatory if/else
+  #25 scale/substitute functional, no `this`
+  #27 Assignment is statement
+  #29 Action verbs = heterogeneous exception
+  #31 Implicit Ingredient → Quantity
+  #34 quantity_of is unary operator
+  #35 substitute slots bare IDENT
+
+SEBESTA §-MAP
+  §3.5  semantics: operational/denotational/axiomatic
+  §5.5  static (lexical) scoping
+  §6.2  primitives defined by operations
+  §6.12 strong typing
+  §6.14 name vs structural equivalence
+  §7.2  precedence + associativity
+  §7.4  coercion (narrowing = dangerous)
+  §7.5  short-circuit evaluation
+  §7.6  operand order + assignment
+  §9.5  param modes collapse w/o mutation
+```
+
+### COMPACT SHEET 2 (one A4 side) — Mechanics & Errors
+
+```
+scale(r, by: k)
+  <r,S> → RtRecipe(n, ings, step_decls, cap_params)
+  <k,S> → k > 0 else RuntimeError
+  n' = int(round(n*k))                    banker's rounding
+  ings': Mass/Vol/Count *= k
+         Temp/Dur/Pinch unchanged
+  S_scaled: servings → n', ings rebound to scaled
+  step bodies RE-EXECUTED under S_scaled
+  return FRESH RtRecipe (#25, no mutation)
+
+substitute(r, x, with: y, ratio: k)
+  x, y are bare IDENT (#35)
+  new_q = orig.q * k
+  new_ings[x] = (label=y, new_q)
+  if y ≠ x: POP standalone y     (consumed)
+  return FRESH RtRecipe
+
+foreach x in L { body }
+  <L,S> → RtList(elems, T); x typed T
+  ∀ i: S_i' = S_i[x→elems[i]]
+       <body, S_i'> → S_{i+1}''
+       S_{i+1} = S_{i+1}'' \ {x}
+  list evaluated ONCE upfront (#18)
+
+19 §10 ERRORS
+ 1 dim mismatch    2 Pinch arith    3 hetero list
+ 4 unknown id      5 redecl         6 shadow
+ 7 if non-bool     8 rep non-int    9 foreach non-list
+10 at non-Temp    11 for non-Dur   12 wrong arity
+13 wrong types   14 sub unknown   15 float→int
+16 Pinch↔Q sub   17 sub non-IDENT 18 q_of non-Ingr
+19 ret not last
+
+PHASE BOUNDARIES
+  lex   → bad char, "200g" no space
+  parse → grammar (a<b<c, brace, sub-expr)
+  type  → errors #1–#19
+  runtime → div 0, neg repeat, scale.by ≤ 0,
+            ambiguous-call leak (loud raise)
+```
+
+### COMPACT SHEET 3 (one A4 side) — Vocab, Defenses, Gotchas
+
+```
+COERCION TABLE
+  int → float           OK (widening)
+  unit ↔ unit (same D)  OK (representation)
+  Ingredient<D> → D     OK (projection #31)
+  float → int           ERROR (narrowing #15)
+  cross-dimension       ERROR (#1)
+  any with Pinch        ERROR (#2)
+
+EQUIVALENCE SPLIT (Sebesta §6.14, dec #10)
+  Quantity / Ingredient / List → STRUCTURAL (data shape)
+  Recipe                       → NAME (identity)
+
+5 KEY SEBESTA DEFINITIONS
+  STRONG TYPING: type errors always detected
+  COERCION: implicit type conversion;
+    NARROWING loses info, WIDENING preserves
+  REF TRANSPARENCY: same expr → same value;
+    Recipix: guaranteed by #16 + #25 + #27
+  STATIC SCOPING: lookup by lexical text;
+    refs resolved at compile time
+  SHORT-CIRCUIT: skip 2nd operand if 1st
+    determines result (&&, || L→R)
+
+DEFENSE TEMPLATE (use for any "defend decision X")
+  1. State decision # + one-line claim
+  2. Cite Sebesta §
+  3. State what spec/code actually does
+  4. State alternative NOT chosen
+  5. State trade-off ACCEPTED (cost for benefit)
+
+DSL ONE-LINER (memorise verbatim)
+  "Dimensional type discipline. A general-purpose language treats
+  200 and 500 as raw numbers. Recipix lifts dimensional structure
+  into the type system — adding g to ml is a compile-time error.
+  evaluate, scale, substitute exist to preserve this invariant."
+
+GOTCHA ANSWERS (pre-loaded)
+  • pour(flour:Mass) OK: 3-class collapse honors #29 carve-out;
+    single-arg trivially satisfies homogeneity; v2 refinement.
+  • Sample 1 = 6 cycles (not 4): scale re-executes step bodies
+    under S_scaled where servings=n' (D1 §4.4).
+  • Negative quantity: v1 scoped-out exception in D1 §4.5;
+    sign discipline doubles lattice; D5 v2 candidate.
+  • Sample 3 trace: "type error at line 13, col 0: dimension
+    mismatch: cannot + Mass and Volume" (spec #1).
+```
+
+---
+
+## 📚 REFERENCE DETAIL (below) — for understanding, do NOT transcribe
+
+Everything from this point through the end of Part 2 is **expanded
+reference material** for study. Read it to understand the content;
+**copy only the compact version above** onto your three A4 sheets.
+
+---
+
 ## SHEET 1 — Language & Decisions Reference
 
 ### 1.1 Sebesta chapter quick-map (memorise: number → topic → Recipix)
