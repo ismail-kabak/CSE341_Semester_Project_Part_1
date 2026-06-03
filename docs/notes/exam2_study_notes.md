@@ -799,6 +799,42 @@ EVAL 2 (non-vegan): no substitute
                                                   ↑ (#28 no-this design)
 ```
 
+### 2.7b Sample 3 — type-error trace (the headline DSL demo)
+
+```
+SRC:  recipe broken() serves 1 {
+        ingredient flour : 200 g
+        ingredient water : 100 ml
+        step "Combine wet and dry" {
+          let total : Mass = flour + water    ← LINE 13, COL 0 of +
+        }
+      }
+      evaluate broken()
+
+LEX:    no error (200 g, 100 ml are well-formed quantity literals)
+PARSE:  no error (let stmt is syntactically valid)
+TYPECHECK in enclosing recipe scope:
+  flour → "Ingredient:Mass"
+  water → "Ingredient:Volume"
+  _check_LetStmt(node):
+    annotation = "Mass"
+    expr = BinaryOp(+, Identifier(flour), Identifier(water))
+    _check_BinaryOp:
+      lt = "Ingredient:Mass"  → _dimension_of() → "Mass"
+      rt = "Ingredient:Volume"→ _dimension_of() → "Volume"
+      both non-None → _check_quantity_binop(+, "Mass", "Volume")
+      "Mass" != "Volume" → raise TypeCheckError(error_code=1)
+  ───────────────────────────────────────────────────────────────
+OUTPUT:  exit 1
+  type error at line 13, col 0: dimension mismatch: cannot + Mass and Volume
+
+→ Caught at COMPILE time. Interpreter NEVER runs sample 3.
+→ This is the headline-claim demonstration for spec §1's
+  "dimensional type discipline."
+→ Implicit Ingredient → Quantity projection (#31) is what turns
+  flour from Ingredient<Mass> into a Mass value before the + runs.
+```
+
 ### 2.8 The 19 spec §10 compile-time errors
 
 ```
@@ -830,7 +866,40 @@ RUNTIME ERRORS (5):
   Pinch in arithmetic context at runtime (rare; usually caught by #2)
 ```
 
-### 2.9 Action-verb three-class table (plan §2.3)
+### 2.9 Phase boundaries — which errors fire where
+
+```
+PHASE         ERROR CLASS                      EXAMPLES
+Lexer         bad char / bad number-unit form  "200g" (no space, #7);
+                                               '@' (unknown char);
+                                               unterminated "...
+Parser        grammar violations               "a < b < c" (#17 non-assoc);
+                                               "if x return" no brace (#20);
+                                               "substitute(r, f+s, ...)" (#35);
+                                               "for ... at ..." reversed (#23);
+                                               "200 + g" expr between (#7)
+Type checker  §10 errors #1–#19                #1 dim mismatch (sample 3);
+                                               #2 Pinch in arith;
+                                               #4 unknown identifier;
+                                               #6 shadowing;
+                                               #12/#13 wrong arity/types;
+                                               #15 float→int coercion;
+                                               #18 quantity_of non-Ingr;
+                                               #19 return not last
+Interpreter   runtime errors                   division by 0;
+                                               negative repeat count;
+                                               scale.by ≤ 0;
+                                               substitute unknown ingr (rare);
+                                               AmbiguousCall reaches interp
+                                               (loud internal-error guard)
+
+ERROR MESSAGE FORMAT (consistent across phases):
+  parse error at line L, col C: <message>
+  type error at line L, col C: <message>
+  runtime error at line L: <message>           (no col — runtime is stmt-level)
+```
+
+### 2.10 Action-verb three-class table (plan §2.3)
 
 ```
 CLASS          VERBS                              RULE
@@ -899,6 +968,37 @@ THREE-CLASS VERB COLLAPSE (plan §2.3):
   Three classes honor decision #29 carve-out + projection #31
   Trade-off: pour(flour:Mass) type-checks (English-language verb semantics lost)
   v2 can add per-verb dimensions to homogeneous class — backwards-compatible
+
+NO `while` LOOP (design choice):
+  repeat and foreach are INTRINSICALLY BOUNDED (header gives the bound)
+  while needs side effects (counter increment / accumulator update)
+       → contradicts #16 (no mutation) and #27 (assignment-as-statement)
+  Termination provable from the loop header alone — no infinite-loop bugs
+  v2 mutation → while becomes meaningful again
+
+EVALUATE-ONLY CONSTRAINT on scale/substitute (spec §9):
+  Can only appear inside expressions rooted at an `evaluate` statement
+  Reason 1: no `this` (#25 corollary) — a recipe can't reference itself
+            during construction; scale/substitute only operate on
+            already-instantiated recipe values
+  Reason 2: ref-transparency boundary — recipe definitions stay pure;
+            evaluate is where pure value construction meets rendering
+
+ERROR #19 SINGLE-RETURN (plan §2.6 — added by us, not in original spec):
+  Spec §7: "Single return at end of body. No early return in v1."
+  Parser ALLOWS `return` anywhere (it's a semantic, not grammatical, rule)
+  Without a checker rule: `if x { return 1 } return 2` silently accepted
+  Our error #19: checker scans `body[-1]` is ReturnStmt, recursively
+                 walks IfStmt/RepeatStmt/ForeachStmt for stray Returns
+  Code: _check_single_return + _no_return_in (typechecker.py)
+
+BANKER'S ROUNDING (plan §2.6 — for scale servings):
+  scale(recipe-of-3, by: 0.5):
+    truncation int(1.5)         = 1  → 33% serving loss
+    ceiling    ceil(1.5)        = 2  → over-orders ingredients
+    banker's   int(round(1.5))  = 2  → unbiased on halves
+  Statistically unbiased (round-half-to-even);
+  pinned by tests; documented in plan §2.6 and D1 §4.4
 ```
 
 ### 3.2 Sebesta vocabulary cheat sheet
@@ -929,6 +1029,95 @@ Single-assignment          Names bound once, immutable          Decision #13
 Lexical scope              Same as static                       Decision #11
 Symbol table               Name → (type, scope) map             Environment class
 Activation record          Stack frame for function call        Implicit in tree-walking
+```
+
+### 3.2b Sebesta-flavored definitions (for cold "explain term X" Qs)
+
+```
+STRONG TYPING (§6.12):
+  "A language is strongly typed if type errors are always detected.
+  Requires the types of all operands to be determined, either at
+  compile time or at run time."
+  → Recipix is strongly typed at compile time, except 2 named v1
+    exceptions (negative quantities, empty-list type inference).
+
+COERCION (§7.4):
+  "An implicit type conversion. A NARROWING coercion converts a
+  value to a type that cannot include all of the values of the
+  original type (e.g. double to float, float to int). A WIDENING
+  coercion converts to a type that can include at least
+  approximations of all original values (e.g. int to float)."
+  → Recipix: int → float widening allowed; float → int narrowing
+    NEVER implicit (silent fractional loss is the danger Sebesta names).
+
+REFERENTIAL TRANSPARENCY:
+  "A program has the property of referential transparency if any
+  two expressions in the program that have the same value can be
+  substituted for one another anywhere in the program, without
+  affecting the action of the program."
+  → Recipix v1: yes, guaranteed by #16 (no mutation) + #25 (functional
+    domain ops) + #27 (assignment is a statement).
+
+STATIC (LEXICAL) SCOPING (§5.5):
+  "The scope of a variable is determined by the textual structure of
+  the program. References can be resolved at compile time."
+  → Recipix: yes, decision #11. Lookup walks parent-pointer chain
+    in Environment class. Each block opens a fresh scope.
+
+DYNAMIC SCOPING (§5.5):
+  "The scope of a variable depends on the calling sequence; resolution
+  walks the run-time call stack, not the lexical text."
+  → NOT used in Recipix. Would break decision #28 (substitute
+    binding lookup) and the type rule for quantity_of.
+
+SHORT-CIRCUIT EVALUATION (§7.5):
+  "An evaluation of an expression in which the result is determined
+  without evaluating all of the operands and/or operators."
+  → Recipix: && and || short-circuit left-to-right.
+
+OPERATIONAL SEMANTICS (§3.5):
+  "Describes the meaning of a program by specifying how it executes
+  on a real or hypothetical machine."
+  → BIG-STEP (a.k.a. natural semantics): rules of the form
+    <expr, S> → value or <stmt, S> → S'.
+  → Recipix D1 §4.4 uses big-step for scale and foreach.
+
+DENOTATIONAL SEMANTICS (§3.5):
+  "Maps each language construct to a mathematical object (typically
+  a function) that denotes its meaning."
+  → NOT used in Recipix.
+
+AXIOMATIC SEMANTICS (§3.5):
+  "Uses preconditions and postconditions (Hoare logic) to describe
+  meaning in terms of what's true before and after each statement."
+  → NOT used in Recipix; handout explicitly forbids this style for
+    the project.
+
+NAME EQUIVALENCE (§6.14):
+  "Two variables have equivalent types if their type definitions
+  appear in the same declaration or in declarations that use the
+  same type name."
+  → Recipix: Recipe only.
+
+STRUCTURAL EQUIVALENCE (§6.14):
+  "Two variables have equivalent types if their types have identical
+  structures."
+  → Recipix: Quantity<D>, Ingredient, List<T>.
+
+STACK-DYNAMIC LIFETIME (§5.4):
+  "Variables whose storage bindings are created when their
+  declaration statements are elaborated, but whose types are
+  statically bound."
+  → Recipix: most local bindings (params, let, ingredients, foreach
+    loop vars). Recipe/function declarations are STATIC lifetime.
+
+PASS-BY-VALUE (§9.5):
+  "The value of the actual parameter is used to initialize the
+  corresponding formal parameter. Acts as a local variable in the
+  subprogram; modifications do not affect the actual parameter."
+  → Recipix v1: collapses to this mode because no mutation exists.
+    By-value/by-reference/by-result/by-value-result are observationally
+    indistinguishable.
 ```
 
 ### 3.3 Binding-times table (§5.3)
@@ -1030,12 +1219,75 @@ What guarantees ref-transparency?                      #16 + #25 + #27 together
    if you have the §2.x mechanics memorised.
 3. ALWAYS name the Sebesta section AND the decision number in your
    answer. (E.g. "Per Sebesta §7.2 and Recipix decision #17, …")
-4. For trace-through Qs (sample 1, sample 3): walk the EXAM grader
+4. For trace-through Qs (sample 1, 2, 3): walk the EXAM grader
    through your steps, don't just state the answer.
 5. For defense Qs: state the choice, state the alternative, state the
    trade-off ACCEPTED. Three sentences minimum.
 6. If you don't know: cite the closest decision number you DO know
    and reason from it. Partial credit > blank.
+```
+
+### 3.9 Fallback templates — for when you're stuck
+
+```
+UNKNOWN DECISION NUMBER:
+  Scan §3.7 quick-recall table; cite the closest decision you know;
+  reason from it. Better than blank.
+
+UNKNOWN SEBESTA SECTION:
+  Scan §1.1 chapter quick-map; cite the chapter even if not the §;
+  partial credit > blank.
+
+UNKNOWN PROGRAM TRACE:
+  Cite the algorithm from sheet 2.x for the relevant operator;
+  walk through with placeholder values; show your reasoning.
+
+UNKNOWN DEFENSE — universal template:
+  "Recipix locked [X]. The alternative would be [Y]. The trade-off
+  accepted is [cost of X] in exchange for [benefit of X]. Sebesta
+  §[N] frames this as [framework concept]."
+
+ANSWER STRUCTURE for any 5-sentence project question:
+  1. State the decision number + one-sentence claim.
+  2. Cite the Sebesta § that frames it.
+  3. State what the spec/code actually does (mechanics).
+  4. State the alternative that was NOT chosen.
+  5. State the trade-off accepted (cost in X for benefit in Y).
+
+ANSWER STRUCTURE for any 5-sentence cold Sebesta question:
+  1. State the Sebesta definition verbatim (§3.2b on Sheet 3).
+  2. State which Recipix decision applies.
+  3. Give the concrete Recipix instance from your code/spec.
+  4. State one example program that illustrates it.
+  5. State what would break in a v2 if the rule changed.
+```
+
+### 3.10 The four most likely "gotcha" questions (have answers ready)
+
+```
+GOTCHA 1: "Trace through sample 3's type-error message verbatim."
+  → Use Sheet 2.7b — every line; cite error #1; end with the
+    exact verbatim message:
+    "type error at line 13, col 0: dimension mismatch: cannot + Mass and Volume"
+
+GOTCHA 2: "Why does pour(flour : Mass) type-check?"
+  → Three-class collapse (plan §2.3); single-arg homogeneous
+    trivially satisfies the rule; English-language verb semantics
+    deliberately sacrificed for type-system parsimony; v2 candidate
+    for per-verb dimensions.
+
+GOTCHA 3: "Your spec admits negative quantities — defend this."
+  → v1 scope-out (D1 §4.5 exception (a)); adding sign discipline
+    to dimensional type system would double the type lattice
+    (Quantity<D, +> vs Quantity<D, ?>); judged too much work for
+    v1; v2 fix candidate; named honestly in D5.
+
+GOTCHA 4: "Why does sample 1 show 6 cycles instead of 4?"
+  → scale's step-body re-execution rule (D1 §4.4, Sheet 2.1, 2.6);
+    fresh env S_scaled with servings rebound to 6; step bodies
+    re-evaluated; user-intuitive ("doubling the recipe doubles
+    the work, not just the header"); ref-transparency preserved
+    because fresh RtRecipe value is built.
 ```
 
 ---
