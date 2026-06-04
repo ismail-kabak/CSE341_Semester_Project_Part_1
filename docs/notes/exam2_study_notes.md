@@ -554,86 +554,73 @@ WHAT BREAKS IF YOU SWITCHED THE DECISION
                   q_of becomes shadowable / assignable / passable
 ```
 
-### COMPACT SHEET 2 (one A4 side) — Mechanics & Errors
+### COMPACT SHEET 2 (one A4 side) — YOUR CODE: parser + interpreter + render
 
 ```
-scale(r, by: k)   WHY: "doubling a recipe doubles the work, not just header"
-  <r,S> → RtRecipe(n, ings, step_decls, cap_params)
-  <k,S> → k > 0 else RuntimeError
-  n' = int(round(n*k))                    banker's rounding
-  ings': Mass/Vol/Count *= k
-         Temp/Dur/Pinch unchanged
-  S_scaled: servings → n', ings rebound to scaled
-  step bodies RE-EXECUTED under S_scaled
-  return FRESH RtRecipe (#25, no mutation)
+INTERPRETER DISPATCH (interpreter.py)
+  _eval(node, env): getattr(self, f"_eval_{NodeType}", None)
+  ReturnException carries return value through nested blocks
+    → _eval_FunctionCall catches and yields the value
+  AmbiguousCall: LOUD raise (no silent fallback per PM review)
 
-substitute(r, x, with: y, ratio: k)   WHY: identity = binding (#28); no `this`
-  x, y are bare IDENT (#35)
-  new_q = orig.q * k
-  new_ings[x] = (label=y, new_q)
-  if y ≠ x: POP standalone y     (consumed)
-  return FRESH RtRecipe
+KEY RUNTIME DATACLASSES (runtime_values.py)
+  RtQuantity(value:float, dim:str)         always BASE unit
+  RtPinch = PINCH (singleton)
+  RtIngredient(name:str, quantity)
+  RtRecipe(name, servings, ings, steps,
+           step_decls, captured_params)    ← last 2 fields for scale re-exec
+  RtList(elements, element_type)
 
-foreach x in L { body }   WHY: intrinsically bounded; no mutation needed
-  <L,S> → RtList(elems, T); x typed T
-  ∀ i: S_i' = S_i[x→elems[i]]
-       <body, S_i'> → S_{i+1}''
-       S_{i+1} = S_{i+1}'' \ {x}
-  list evaluated ONCE upfront (#18)
+PARSER DECISIONS YOU ENFORCE (parser.py)
+  #7  _parse_primary: after INT/FLOAT_LIT peek UNIT_KW → QuantityLit
+  #17 _parse_eq / _parse_rel: after 1 cmp op, peek for 2nd → ParseError
+  #20 _parse_if_stmt: _expect(LBRACE) on BOTH branches
+  #23 _parse_step_decl: 'at' before 'for'; else explicit error
+  #34 _parse_unary: dedicated branch for quantity_of "(" expr ")"
+  #35 _parse_substitute_call: IDENT slot (not _parse_expr)
 
-19 §10 ERRORS   WHY: every error has one code; messages format identically
- 1 dim mismatch    2 Pinch arith    3 hetero list
- 4 unknown id      5 redecl         6 shadow
- 7 if non-bool     8 rep non-int    9 foreach non-list
-10 at non-Temp    11 for non-Dur   12 wrong arity
-13 wrong types   14 sub unknown   15 float→int
-16 Pinch↔Q sub   17 sub non-IDENT 18 q_of non-Ingr
-19 ret not last  (#19 added by us, not original spec)
+SCALE — your code path  WHY: doubling recipe → doubling work
+  Sample 1: scale(pancakes(servings:4), by:1.5) → 6 servings, 6 cycles
+  n' = int(round(n*k))                   banker's (plan §2.6)
+  ings: Mass/Vol/Count *= k; Temp/Dur/Pinch unchanged
+  scaled_env: servings → n', ings rebound to scaled
+  RE-EXECUTE step_decls under scaled_env (not pre-built actions)
+  → FRESH RtRecipe; original NEVER mutated (#25 ref-transparency)
 
-PHASE BOUNDARIES   WHY: catch errors at earliest possible phase
-  lex   → bad char, "200g" no space
-  parse → grammar (a<b<c, brace, sub-expr)
-  type  → errors #1–#19
-  runtime → div 0, neg repeat, scale.by ≤ 0,
-            ambiguous-call leak (loud raise)
+SUBSTITUTE — your code path  WHY: identity = binding (#28); no `this`
+  Sample 2: vegan = 1 oat_milk line; non-vegan = 2 (milk + oat_milk)
+  new_ings[x] = RtIngredient(name=y, qty = orig.qty * ratio)
+  if y ≠ x: new_ings.pop(y)              ← POP-on-consume (sample 2 key)
+  step actions: relabel propagates via ingredient binding lookup
+                (NOT re-executed unlike scale)
 
-EBNF METASYMBOLS (Sebesta §3.1, for Q15-style)
-  <name>          nonterminal
-  "literal"       terminal (keyword / punct)
-  UPPERCASE       token category (INT_LIT, IDENT)
-  [ X ]           optional (0 or 1)
-  { X }           repetition (0 or more)
-  X | Y           choice (one of)
+RENDER HEURISTIC (rendering.py)  WHY: cookbook readability
+  Mass:     v < 1000 → "v g"      else  "v/1000 kg"
+  Volume:   v < 1000 → "v ml"     else  "v/1000 l"
+  Duration: v < 60   → "v min"    else  "v/60 hr"
+  Temp:     "v °C"   Count: "v"   Pinch: "a pinch"
+  Format ":g" drops trailing zeros (300.0 g → 300 g)
 
-SAMPLE 3 TRACE (the headline DSL demo)
-  src: let total : Mass = flour + water     (line 13)
-       flour:Ingredient<Mass>, water:Ingredient<Volume>
-  LEX: OK   PARSE: OK
-  TYPE: _check_BinaryOp(+) → _dimension_of(lt)=Mass,
-       _dimension_of(rt)=Volume → mismatch → error #1
-  OUT: exit 1
-       "type error at line 13, col 0: dimension mismatch:
-        cannot + Mass and Volume"
+YOUR §4.7 / §4.8 FOUR DEFENSES (compact)
+  #17 cmp non-assoc: parse-time catch beats runtime type-error
+  #19 short-circuit L→R: matches operand order; safety for /0 guards
+  #18 operand eval L→R fixed: predictable error line numbers
+  #27 assign = statement: every expr ref-transparent in v1
 
-BANKER'S ROUNDING (scale servings, plan §2.6)
+_exec_step_body vs _exec_stmt (BQ9 — your code distinction)
+  _exec_stmt: regular side-effecting executor
+  _exec_step_body: partial-evaluator that ACCUMULATES action records
+    into actions list → goes into RtRecipe.steps as {desc, at, for,
+    actions} dict per step
+
+BANKER'S ROUNDING (plan §2.6)
   scale(recipe-of-3, by: 0.5):
-    truncation int(1.5) = 1   → 33% serving loss
-    ceiling    ceil(1.5)= 2   → over-orders ingredients
-    banker's   int(round(1.5))= 2   ← chosen (unbiased)
-  Tie-breaking round-half-to-even: 0.5→0, 1.5→2, 2.5→2
+    trunc int(1.5)=1 → 33% loss   ceil(1.5)=2 → over-orders
+    banker's int(round(1.5))=2  ← chosen (unbiased halves)
 
-ACTION VERB 3 CLASSES (plan §2.3 — for Q21)
-  HETERO    combine mix add sprinkle    ≥1 arg, any dim incl Pinch (#29)
-  HOMO      pour drizzle whisk blend    ≥1 arg, all same dim, NO Pinch (#31)
-            knead melt
-  NULLARY   bake flip                    0 args (modifiers via at/for)
-  pour(flour:Mass) OK: homo + single-arg trivially homogeneous
-
-BINDING TIMES (Sebesta §5.3 — for Q13)
-  COMPILE: recipe/fn names+sig, ingredient TYPES, let TYPES,
-           foreach var TYPE
-  RUNTIME: ingredient VALUES, recipe/fn PARAMS, let VALUES,
-           foreach var VALUE (rebound per iter)
+EBNF METASYMBOLS (Sebesta §3.1)
+  <name> nonterm | "literal" terminal | UPPERCASE token_cat
+  [X] optional | {X} repetition (0+) | X|Y choice
 ```
 
 ### COMPACT SHEET 3 (one A4 side) — Vocab, Defenses, Gotchas
