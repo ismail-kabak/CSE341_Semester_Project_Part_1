@@ -509,24 +509,24 @@ PRECEDENCE LADDER (high → low, associativity right column)
   6  &&                                    LEFT short-circuit
   7  ||                                    LEFT short-circuit
 
-TOP DECISIONS  (number → one-line summary)
-  #4  Pinch own primitive (no arithmetic)
-  #7  Quantity literal = TWO tokens
-  #10 Equiv split: structural Q/I/L, NAME for Recipe
-  #11 Static lexical scoping
-  #12 No shadowing (compile-error #6)
-  #13 Single-assignment (let immutable)
-  #16 Param by-value (no mutation in v1)
-  #17 Cmp non-associative (no chaining)
-  #18 Operand eval L→R, fully defined
-  #19 && || short-circuit L→R
-  #20 Braces mandatory if/else
-  #25 scale/substitute functional, no `this`
-  #27 Assignment is statement
-  #29 Action verbs = heterogeneous exception
-  #31 Implicit Ingredient → Quantity
-  #34 quantity_of is unary operator
-  #35 substitute slots bare IDENT
+TOP DECISIONS — WHAT it is | WHY chosen (the trade-off / Sebesta hook)
+  #4  Pinch own primitive       | avoids per-op carve-outs in Quantity<D>
+  #7  Quantity = 2 tokens        | unambiguous lex; allows /*comments*/ between
+  #10 Equiv split (struct/name)  | data shape (Q/I/L) vs identity (Recipe)
+  #11 Static lexical scoping     | compile-time refs; #28 + q_of need it
+  #12 No shadowing               | catches bugs at compile time (#6 error)
+  #13 Single-assignment          | immutability → referential transparency
+  #16 Param semantic by-value    | no mutation in v1 → §9.5 modes collapse
+  #17 Cmp non-associative        | parse-time catch beats runtime type err
+  #18 L→R operand eval, locked   | predictable line numbers in error msgs
+  #19 && || short-circuit L→R    | user expectation + safety (skip /0 etc)
+  #20 Mandatory if/else braces   | eliminates dangling-else by construction
+  #25 scale/sub functional       | ref-transparency: fresh value, no mutation
+  #27 Assignment is statement    | every expression ref-transparent in v1
+  #29 Verbs are hetero exception | decision-#29 carve-out to homogeneous rule
+  #31 Implicit Ing → Q project   | ergonomic step bodies; no q_of() noise
+  #34 quantity_of = unary op     | return type depends on operand's dim
+  #35 sub slots = bare IDENT     | identity = binding (#28) visible in grammar
 
 SEBESTA §-MAP
   §3.5  semantics: operational/denotational/axiomatic
