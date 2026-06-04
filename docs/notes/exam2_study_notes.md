@@ -544,7 +544,7 @@ SEBESTA §-MAP
 ### COMPACT SHEET 2 (one A4 side) — Mechanics & Errors
 
 ```
-scale(r, by: k)
+scale(r, by: k)   WHY: "doubling a recipe doubles the work, not just header"
   <r,S> → RtRecipe(n, ings, step_decls, cap_params)
   <k,S> → k > 0 else RuntimeError
   n' = int(round(n*k))                    banker's rounding
@@ -554,30 +554,30 @@ scale(r, by: k)
   step bodies RE-EXECUTED under S_scaled
   return FRESH RtRecipe (#25, no mutation)
 
-substitute(r, x, with: y, ratio: k)
+substitute(r, x, with: y, ratio: k)   WHY: identity = binding (#28); no `this`
   x, y are bare IDENT (#35)
   new_q = orig.q * k
   new_ings[x] = (label=y, new_q)
   if y ≠ x: POP standalone y     (consumed)
   return FRESH RtRecipe
 
-foreach x in L { body }
+foreach x in L { body }   WHY: intrinsically bounded; no mutation needed
   <L,S> → RtList(elems, T); x typed T
   ∀ i: S_i' = S_i[x→elems[i]]
        <body, S_i'> → S_{i+1}''
        S_{i+1} = S_{i+1}'' \ {x}
   list evaluated ONCE upfront (#18)
 
-19 §10 ERRORS
+19 §10 ERRORS   WHY: every error has one code; messages format identically
  1 dim mismatch    2 Pinch arith    3 hetero list
  4 unknown id      5 redecl         6 shadow
  7 if non-bool     8 rep non-int    9 foreach non-list
 10 at non-Temp    11 for non-Dur   12 wrong arity
 13 wrong types   14 sub unknown   15 float→int
 16 Pinch↔Q sub   17 sub non-IDENT 18 q_of non-Ingr
-19 ret not last
+19 ret not last  (#19 added by us, not original spec)
 
-PHASE BOUNDARIES
+PHASE BOUNDARIES   WHY: catch errors at earliest possible phase
   lex   → bad char, "200g" no space
   parse → grammar (a<b<c, brace, sub-expr)
   type  → errors #1–#19
@@ -588,28 +588,31 @@ PHASE BOUNDARIES
 ### COMPACT SHEET 3 (one A4 side) — Vocab, Defenses, Gotchas
 
 ```
-COERCION TABLE
-  int → float           OK (widening)
-  unit ↔ unit (same D)  OK (representation)
-  Ingredient<D> → D     OK (projection #31)
-  float → int           ERROR (narrowing #15)
-  cross-dimension       ERROR (#1)
-  any with Pinch        ERROR (#2)
+COERCION TABLE   WHY: narrowing = silent data loss (Sebesta §7.4 danger)
+  int → float           OK     widening; every int ≤ 2^53 exact in float
+  unit ↔ unit (same D)  OK     representation-only; dim preserved
+  Ingredient<D> → D     OK     projection #31; step-body ergonomics
+  float → int           ERR    #15 narrowing; silent truncation = danger
+  cross-dimension       ERR    #1 the DSL's reason to exist
+  any with Pinch        ERR    #2 ceremonial — no arithmetic allowed
 
-EQUIVALENCE SPLIT (Sebesta §6.14, dec #10)
-  Quantity / Ingredient / List → STRUCTURAL (data shape)
-  Recipe                       → NAME (identity)
+EQUIVALENCE SPLIT (Sebesta §6.14, dec #10)   WHY: shape vs identity records
+  Quantity / Ingredient / List → STRUCTURAL    data shape carries meaning
+  Recipe                       → NAME          identity: pancakes ≠ crepes
 
-5 KEY SEBESTA DEFINITIONS
-  STRONG TYPING: type errors always detected
-  COERCION: implicit type conversion;
+5 KEY SEBESTA DEFINITIONS   (def | Recipix use)
+  STRONG TYPING (§6.12)      type errors always detected
+    | Recipix yes; 2 named v1 gaps (neg qty, empty list)
+  COERCION (§7.4)            implicit type conversion;
     NARROWING loses info, WIDENING preserves
-  REF TRANSPARENCY: same expr → same value;
-    Recipix: guaranteed by #16 + #25 + #27
-  STATIC SCOPING: lookup by lexical text;
+    | Recipix: int→float OK; float→int FORBIDDEN
+  REF TRANSPARENCY            same expr → same value, always
+    | Recipix v1: guaranteed by #16 + #25 + #27 together
+  STATIC SCOPING (§5.5)       lookup by lexical text;
     refs resolved at compile time
-  SHORT-CIRCUIT: skip 2nd operand if 1st
-    determines result (&&, || L→R)
+    | Recipix #11; Environment walks parent-pointer chain
+  SHORT-CIRCUIT (§7.5)        skip 2nd operand if 1st decides
+    | Recipix && and || L→R (#19); safety for /0 guards
 
 DEFENSE TEMPLATE (use for any "defend decision X")
   1. State decision # + one-line claim
