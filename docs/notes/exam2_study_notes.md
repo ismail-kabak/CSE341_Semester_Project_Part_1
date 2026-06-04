@@ -539,6 +539,19 @@ SEBESTA §-MAP
   §7.5  short-circuit evaluation
   §7.6  operand order + assignment
   §9.5  param modes collapse w/o mutation
+
+WHAT BREAKS IF YOU SWITCHED THE DECISION
+  #10 Recipe → struct? pancakes & crepes interchangeable in scale → bug
+  #11 static → dynamic? quantity_of resolves through call stack; #28 sub
+              binding lookup goes through caller, not recipe → broken
+  #17 cmp left-assoc? 1kg<flour<2kg parses (1kg<flour)<2kg → bool<2kg
+              → confusing RUNTIME type error vs clean parse error
+  #18 unspecified? same prog, different platforms, different err lines
+  #20 optional braces? dangling-else returns; if a if b s1 else s2?
+  #25 mutable scale? scale(R, by:1) ≠ R if render side-effects exist
+  #27 expr assign? if (x = compute()) > 0 pattern; eval order observable
+  #34 q_of as fn? FunctionType can't express Ingredient<D>→D;
+                  q_of becomes shadowable / assignable / passable
 ```
 
 ### COMPACT SHEET 2 (one A4 side) — Mechanics & Errors
@@ -583,6 +596,31 @@ PHASE BOUNDARIES   WHY: catch errors at earliest possible phase
   type  → errors #1–#19
   runtime → div 0, neg repeat, scale.by ≤ 0,
             ambiguous-call leak (loud raise)
+
+EBNF METASYMBOLS (Sebesta §3.1, for Q15-style)
+  <name>          nonterminal
+  "literal"       terminal (keyword / punct)
+  UPPERCASE       token category (INT_LIT, IDENT)
+  [ X ]           optional (0 or 1)
+  { X }           repetition (0 or more)
+  X | Y           choice (one of)
+
+SAMPLE 3 TRACE (the headline DSL demo)
+  src: let total : Mass = flour + water     (line 13)
+       flour:Ingredient<Mass>, water:Ingredient<Volume>
+  LEX: OK   PARSE: OK
+  TYPE: _check_BinaryOp(+) → _dimension_of(lt)=Mass,
+       _dimension_of(rt)=Volume → mismatch → error #1
+  OUT: exit 1
+       "type error at line 13, col 0: dimension mismatch:
+        cannot + Mass and Volume"
+
+BANKER'S ROUNDING (scale servings, plan §2.6)
+  scale(recipe-of-3, by: 0.5):
+    truncation int(1.5) = 1   → 33% serving loss
+    ceiling    ceil(1.5)= 2   → over-orders ingredients
+    banker's   int(round(1.5))= 2   ← chosen (unbiased)
+  Tie-breaking round-half-to-even: 0.5→0, 1.5→2, 2.5→2
 ```
 
 ### COMPACT SHEET 3 (one A4 side) — Vocab, Defenses, Gotchas
@@ -636,6 +674,29 @@ GOTCHA ANSWERS (pre-loaded)
     sign discipline doubles lattice; D5 v2 candidate.
   • Sample 3 trace: "type error at line 13, col 0: dimension
     mismatch: cannot + Mass and Volume" (spec #1).
+
+EXAMPLE PROGRAMS (for "give me a program where X" questions)
+  Op order observable (Q1): let x:int = f(a/0) + g(b/0)
+    L→R: error from a/0 fires; under unspecified: either possible
+  Non-assoc chained cmp (Q2): 1 kg < flour < 2 kg
+    Recipix: PARSE ERROR; C-style: parses, runtime type err
+  Projection #31 (Q5):  let total:Mass = flour + 100 g  inside step
+    flour:Ingredient<Mass> → Mass; 100 g → Mass; result Mass
+  Sample 2 extra oat_milk (Q14): non-veg variant shows BOTH milk
+    + oat_milk because oat_milk pre-declared for substitute (#28)
+  EBNF metasymbol identification (Q15):
+    [ "at" e ]  optional;  { stmt }  repetition;  X | Y  choice
+
+STRONG TYPING (§6.12) — Recipix exceptions named (Q12)
+  (a) negative quantities: interp accepts, checker doesn't flag
+  (b) empty [] inferred List<?>: checker defensive, foreach loose
+  → both v1-scoped; named in D1 §4.5 + D5; v2 candidates
+
+3-DECISION COMBO (Q24 — ref transparency guarantor)
+  #16 by-value (no caller-visible mutation through params)
+  #25 scale/substitute functional (no recipe mutation)
+  #27 assign as statement (no expression has a value side-effect)
+  TOGETHER → every Recipix expression is ref-transparent in v1
 ```
 
 ---
