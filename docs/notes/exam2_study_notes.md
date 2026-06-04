@@ -621,6 +621,19 @@ BANKER'S ROUNDING (scale servings, plan §2.6)
     ceiling    ceil(1.5)= 2   → over-orders ingredients
     banker's   int(round(1.5))= 2   ← chosen (unbiased)
   Tie-breaking round-half-to-even: 0.5→0, 1.5→2, 2.5→2
+
+ACTION VERB 3 CLASSES (plan §2.3 — for Q21)
+  HETERO    combine mix add sprinkle    ≥1 arg, any dim incl Pinch (#29)
+  HOMO      pour drizzle whisk blend    ≥1 arg, all same dim, NO Pinch (#31)
+            knead melt
+  NULLARY   bake flip                    0 args (modifiers via at/for)
+  pour(flour:Mass) OK: homo + single-arg trivially homogeneous
+
+BINDING TIMES (Sebesta §5.3 — for Q13)
+  COMPILE: recipe/fn names+sig, ingredient TYPES, let TYPES,
+           foreach var TYPE
+  RUNTIME: ingredient VALUES, recipe/fn PARAMS, let VALUES,
+           foreach var VALUE (rebound per iter)
 ```
 
 ### COMPACT SHEET 3 (one A4 side) — Vocab, Defenses, Gotchas
@@ -697,6 +710,24 @@ STRONG TYPING (§6.12) — Recipix exceptions named (Q12)
   #25 scale/substitute functional (no recipe mutation)
   #27 assign as statement (no expression has a value side-effect)
   TOGETHER → every Recipix expression is ref-transparent in v1
+
+§9.5 FOUR PARAM MODES (for Q9)
+  by-value          caller's copy; callee can't modify caller-visible
+  by-reference      callee can mutate caller's value
+  by-result         callee writes to caller after; init from nothing
+  by-value-result   copy-in copy-out
+  Recipix v1: all FOUR collapse to by-value (no mutation exists)
+  Restore observability: add mutation (e.g. mutable accumulator)
+
+WHY NO WHILE (Q17) — repeat / foreach intrinsically bounded
+  while needs side effects (counter inc, accumulator update)
+  → contradicts #16 (no mutation) + #27 (assign as stmt)
+  Termination provable from loop header alone → no infinite loop bugs
+
+EVALUATE-ONLY (Q19) — scale/substitute require evaluate context
+  (1) no `this` (#25): recipe can't reference self during construction
+  (2) ref-transparency boundary: recipe defs stay pure; evaluate is
+      where pure value construction meets rendering
 ```
 
 ---
